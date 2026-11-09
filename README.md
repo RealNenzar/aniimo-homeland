@@ -10,9 +10,9 @@ RV-Level wählen: Der Planer übernimmt die maximal verfügbaren Gebäude und de
 
 HiGHS löst ein gemischt-ganzzahliges Modell: Rohstoffe, Zwischenprodukte und Bestände werden bilanziert; die Kapazität der Gebäude ist begrenzt. Jedes Gebäude ist einem Rezept zugeordnet, einschließlich Woodworking Bench und Chimney Kiln. Ziele werden in Reihenfolge optimiert und vorher erreichte Werte erhalten. RV-Level-up maximiert den erreichbaren Anteil der Kosten im Zeitraum; es berechnet nicht die exakte Dauer.
 
-Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whimsy Points als eigenes Ziel behandelt. Shop-Rezepte müssen freigeschaltet werden. Einzelne Rezepte können bei fehlender Freischaltung deaktiviert werden. Die RV-Kosten 2–20 stammen aus Aniimax und lassen sich überschreiben.
+Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whimsy Points als eigenes Ziel behandelt. Vier bereits erhaltene Wonder-Daily-Belohnungen lassen sich einmalig zu je 200 Jelly Beans ergänzen, falls sie noch nicht im Vorrat enthalten sind. Shop-Rezepte müssen freigeschaltet werden. Einzelne Rezepte können bei fehlender Freischaltung deaktiviert werden. Die RV-Kosten 2–20 stammen aus Aniimax und lassen sich überschreiben.
 
-Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten 120 % Versorgung und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Aniimo mit maximaler bekannter Arbeitsstufe und passendem Persönlichkeitsbonus an. Tatsächlich verfügbare Aniimo werden nicht geprüft.
+Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten 120 % Versorgung und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Persönlichkeiten an. Ohne Eingaben verwendet er Arbeitsstufe 3; eingetragene Mengen pro Fähigkeit und Stufe begrenzen die berechnete Produktionsarbeit. Feldarbeiten, Transport, Klimageräte und Generatoren sind in diesen Personalgrenzen nicht vollständig erfasst.
 
 Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Lager werden bis zur RV-Grenze verteilt; ihre Positionen minimieren näherungsweise gewichtete Luftlinien zu Produktionsstätten. Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Lagergrenzen: [Aniimo Camp](https://aniimocamp.com/). Jede platzierte Holzbank und jeder Ofen zeigt genau ein Rezept. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
 
@@ -23,7 +23,7 @@ Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte P
 - Lagerbestand wird über den Zeitraum verteilt; Startzeiten und ganze Chargen werden nicht simuliert.
 - Eventpunkte für Möbel, Aufträge, Mutationen und sonstige Quellen fehlen. Eventdaten und Preise im Spiel überprüfen.
 - Klima- und Stromreichweiten beruhen auf einem vereinfachten Raster. Wege, Hindernisse und bereits vorhandene Möbel werden nicht geprüft. Nicht platzierte Gebäude sowie unvollständige Klima- und Stromversorgung werden angezeigt. Wenn sie auftreten, ist die errechnete Produktionsrate für das gezeigte Layout nicht abgesichert.
-- Verfügbare Aniimo, Persönlichkeiten und arbeitende Spezialarten werden nicht automatisch erkannt oder verteilt. Die Annahme maximaler Arbeitsfähigkeiten kann für ein konkretes Homeland zu optimistisch sein.
+- Fähigkeiten und Stufen begrenzen die Produktionsarbeit. Dieselben Aniimo mit mehreren Fähigkeiten, die genaue Persönlichkeitsverteilung und Familienbindungen werden nicht individuell verfolgt.
 - Bei Erreichen des Zeitlimits wird keine Optimalität behauptet.
 
 ## Daten und Quellen

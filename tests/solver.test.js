@@ -222,3 +222,11 @@ test('incomplete network does not leave poles without covered devices',()=>{
  const layout={plots:5,placed:[{name:'Power target',plot:5,x:0,y:0,w:80,h:60,electric:true},{name:'Full',plot:1,x:0,y:0,w:80,h:60}]};
  const result=placePower(layout,1,24);assert.equal(result.generatorsPlaced,1);assert.ok(result.poles<24);
 });
+test('default workers use level three and specified counts constrain production',async()=>{
+ const s=state();s.autoWorkers=true;s.facilities={'Claw Game Cooker':{...f,count:3}};
+ const r=recipe('food','Claw Game Cooker',{seconds:0,workload:3600,abilityLevel:1,sellValue:10});
+ const unlimited=await optimize([r],s);assert.ok(unlimited.rows.every(x=>x.recipe.worker.skill===3));
+ s.workerCounts={Fire:{3:1}};const limited=await optimize([r],s);
+ assert.ok(limited.goals[0].value<unlimited.goals[0].value*.5);assert.ok(limited.rows.every(x=>x.recipe.worker.skill===3));
+ s.workerCounts={Fire:{3:0}};const none=await optimize([r],s);assert.equal(none.goals[0].value,0);
+});

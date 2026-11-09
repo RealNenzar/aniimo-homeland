@@ -1,5 +1,6 @@
 import {speed} from './solver.js';
-export const workers={'Mine':['Earth','Playful'],'Well':['Water','Faithful'],'Tidewhisper Sandcastle':['Leisure','Judicious'],'Dewy House':['Leisure','Instinctive'],'Nimbus Bed':['Leisure','Judicious'],'Starfall Hammock':['Leisure','Faithful'],'Floral Windmill':['Leisure','Nimble'],'Carousel Mill':['Wind','Tenacious'],'Crafting Table':['Artisanship','Judicious'],'Claw Game Cooker':['Fire','Practical'],'Jukebox Dryer':['Dark','Nimble'],'Simmering Pot':['Fire','Tenacious'],'Phonolfactory Table':['Perfumery','Instinctive'],'Bouncy Brew Keg':['Water','Energetic'],'Blazing Stove':['Fire','Nimble'],'Pickling Jar':['Dark','Playful'],'Joy Wheel Loom':['Wind','Faithful'],'Dance Pad Polisher':['Lightning',''],'Aniipod Maker':['Lightning',''],'Woodworking Bench':['Artisanship','Energetic'],'Chimney Kiln':['Fire','Practical']};
+import {workers} from './worker-abilities.js';
+
 const resident=new Set(['Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill']);
 const opposites={Instinctive:'Energetic',Energetic:'Instinctive',Nimble:'Practical',Practical:'Nimble',Faithful:'Tenacious',Tenacious:'Faithful',Playful:'Judicious',Judicious:'Playful'};
 

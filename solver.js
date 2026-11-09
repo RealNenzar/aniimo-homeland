@@ -1,5 +1,6 @@
 import highsModule from './vendor/highs/highs.mjs';
 import { facilityGroups } from './facilities.js';
+import {workers} from './worker-abilities.js';
 import { ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, facilityWatts } from './power.js';
 
 const gathering = new Set(['Mine','Well','Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill','Aniipod Maker']);
@@ -25,9 +26,12 @@ export function speed(r, f) {
 export function prepare(catalog, state) {
   const ids = new Set(catalog.map(r => r.id));
   return catalog.flatMap(r => facilityGroups(state.facilities[r.facility]).flatMap((f,group) => {
-    const worker=state.autoWorkers?{...f,skill:r.facility==='Phonolfactory Table'?3:4,bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false}:f;
-    const modes=[{...r,group,worker}];
-    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...worker,electric:true,powerEfficiency:1.2}});
+    const ability=workers[r.facility]?.[0];
+    const entries=ability && state.workerCounts?.[ability];
+    const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
+    const levels=state.autoWorkers && !r.seconds && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1];
+    const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:!!configured}:f}));
+    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:1.2,ability,limited:false}});
     return modes;
   })).filter(r => {
     const f = r.worker;
@@ -77,6 +81,12 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
       } else vars=recipes.flatMap((r,i)=>r.facility===facility && r.group===group?[[1,`n${i}`]]:[]);
       if(vars.length) lines.push(`facility${lines.length}: ${expr(vars)} <= ${f.count}`);
     });
+  }
+  const resident=new Set(['Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill']);
+  for(const [ability,levels] of Object.entries(state.workerCounts||{}))for(let level=1;level<=4;level++){
+    const count=levels[level];if(count===''||count===null||count===undefined)continue;
+    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
+    if(terms.length)lines.push(`crew${lines.length}: ${expr(terms)} <= ${Math.max(0,Math.floor(Number(count)||0))}`);
   }
   if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0;lines.push(`power: ${expr(electrical)} <= ${max*(Number(p.watts)||0)/1.2}`)}
   for(const [i,item] of itemIds.entries()) {
