@@ -64,7 +64,7 @@ document.addEventListener('change',e=>{const t=e.target;if(t.dataset.f){const ke
  if(t.dataset.value){let key=t.dataset.value,item=Object.keys(state[key])[+t.dataset.index];state[key][item]=Math.max(0,+t.value||0)}
  if(t.dataset.row){let key=t.dataset.row,old=Object.keys(state[key])[+t.dataset.index];if(old!==t.value){let val=state[key][old];delete state[key][old];state[key][t.value]=val}draw()}
  if(t.id==='hours')state.hours=Math.min(720,Math.max(1,+t.value||24));if(t.id==='beans')state.beans=Math.max(0,+t.value||0);if(t.id==='event')state.event=t.checked;if(t.id==='unverified')state.unverified=t.checked;
- if(t.id==='notes-all'){state.notes=t.checked?[...special]:[];drawRecipes()}if(t.id!=='language' && t.id!=='plot-count' && t.id!=='import')invalidatePlan();save()});
+ if(t.id==='notes-all'){state.notes=t.checked?[...special]:[];drawRecipes();translatePage($('#recipes'),state.language)}if(t.id!=='language' && t.id!=='plot-count' && t.id!=='import')invalidatePlan();save()});
 $('#search').addEventListener('input',()=>{drawRecipes();translatePage($('#recipes'),state.language)});$('#add-stock').onclick=()=>addRow('stock');$('#add-target').onclick=()=>addRow('targets');$('#clear-buildings').onclick=()=>{state.facilities={};invalidatePlan();draw();save()};
 $('#theme').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';save();draw()};
 $('#current-rv').innerHTML+=Array.from({length:20},(_,i)=>`<option value="${i+1}">RV ${i+1}</option>`).join('');

@@ -4,6 +4,7 @@ import {speed,model,optimize} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
 import {layoutPlan,placePower,PLOT_GRID} from '../layout.js';
+import {translate} from '../i18n.js';
 
 const f={count:1,level:1,skill:1,bonus:false};
 const recipe=(id,facility,extra={})=>({id,facility,ingredients:{},yield:1,seconds:60,workload:0,facilityLevel:1,module:'',abilityLevel:1,verified:true,event:null,sellCurrency:'coins',sellValue:0,seedCost:0,byproductYield:0,eventPoints:0,...extra});
@@ -102,4 +103,10 @@ test('power layout reports a missing generator when no plots are free',()=>{
  const grid=placePower(layout,1,6);
  assert.equal(grid.generatorsPlaced,0);
  assert.equal(grid.complete,false);
+});
+test('interface translations cover all four languages',()=>{
+ assert.equal(translate('Prioritäten','de'),'Prioritäten');
+ assert.equal(translate('Prioritäten','en'),'Priorities');
+ assert.equal(translate('Prioritäten','ru'),'Приоритеты');
+ assert.equal(translate('Prioritäten','fr'),'Priorités');
 });
