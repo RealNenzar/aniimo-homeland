@@ -15,8 +15,9 @@ export function powerSummary(state) {
   const rv = Number(state.currentRv)||0;
   const maxCount = rv>=18?3:rv>=15?2:rv>=12?1:0;
   const watts = Math.max(0, Number(p.watts) || 0);
-  const needed = draw && watts ? Math.ceil((draw * 1.2) / watts) : 0;
+  const requested = Math.max(.01,Math.min(1.2,Number(p.efficiencyPercent??120)/100));
+  const needed = draw && watts ? Math.ceil((draw * requested) / watts) : 0;
   const count = p.enabled && level <= Number(p.module) ? Math.min(maxCount,needed) : 0;
   const output = count * watts;
-  return {draw, output, count, needed, maxCount, efficiency: draw ? Math.min(1.2, output / draw) : 0, maxOutput: count * (GENERATOR_WATTS[level] || 0)};
+  return {draw, output, count, needed, maxCount, efficiency: draw ? Math.min(requested, output / draw) : 0, maxOutput: count * (GENERATOR_WATTS[level] || 0)};
 }

@@ -254,3 +254,35 @@ test('field abilities and hauling reserve capacity only for planted crops',async
  assert.match(m.lp,/fieldLink/);assert.match(m.lp,/homelandCrew:.*field0.*field1.*field2.* <= 7/);
  s.workerCounts={Water:{3:0}};const result=await optimize([recipe('crop','Farmland',{seconds:3600,sellValue:10})],s);assert.equal(result.goals[0].value,0);
 });
+import {upgradeForecast} from '../upgrade-balance.js';
+test('forecast estimates the first common target time from average rates',()=>{
+ const r={rows:[{rate:4,recipe:{id:'wood_block',yield:1,ingredients:{}}}],sales:[],daily:[]};
+ const s={hours:10,stock:{wood_block:10,coins:150},targets:{wood_block:30,coins:100}};
+ const result=upgradeForecast(r,s);assert.equal(result.reachable,true);assert.equal(result.hours,5);assert.equal(result.balances.find(x=>x.item==='coins').difference,50);
+});
+test('climate devices reserve staff and obey explicitly entered ability counts',async()=>{
+ const s=state();s.currentRv=7;s.autoWorkers=true;s.facilities={Farmland:{...f,count:1}};s.workerCounts={Fire:{3:0}};
+ const r=recipe('crop','Farmland',{seconds:3600,environment:'Scorching',sellValue:1});
+ const m=model([r],s);assert.match(m.lp,/climateLink/);assert.match(m.lp,/supportCrew/);
+ const result=await optimize([r],s);assert.equal(result.goals[0].value,0);
+});
+test('selected power percentage changes generator demand and processing speed',()=>{
+ const s=state();s.currentRv=12;s.autoWorkers=true;s.power={enabled:true,module:1,level:1,watts:600,efficiencyPercent:100};s.facilities={'Claw Game Cooker':f};
+ const r=recipe('food','Claw Game Cooker',{seconds:0,workload:120,abilityLevel:1});const electric=model([r],s).recipes.find(x=>x.worker.electric);
+ assert.equal(speed(electric,electric.worker),120);assert.match(model([r],s).lp,/600\.000000000 generatorCount/);
+});
+test('coin tolerance accepts full 100 percent',()=>{
+ const s=state();s.event=true;s.eventCoinTolerance=1;s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true}];
+ const m=model([recipe('wheat','Farmland',{sellValue:100})],s,[{key:'coins',value:100}],'event');
+ assert.match(m.lp,/priority0:.* >= -1e-7/);
+});
+import {eventBudget} from '../event-budget.js';
+test('future daily rewards add once per full day and remain separate from earned rewards',()=>{
+ assert.equal(eventBudget({beans:100,event:true,hours:48,dailyRewards:{friend:true},dailyFuture:{friend:true,sale:true}}),1100);
+ assert.equal(eventBudget({beans:100,event:false,hours:48,dailyRewards:{friend:true},dailyFuture:{friend:true}}),300);
+});
+test('forecast marks extrapolation beyond the modeled period',()=>{
+ const r={rows:[{rate:1,recipe:{id:'wood_block',yield:1,ingredients:{}}}],sales:[],daily:[]};
+ const s={hours:10,stock:{wood_block:0},targets:{wood_block:20}};const f=upgradeForecast(r,s);
+ assert.equal(f.hours,20);assert.equal(f.extrapolated,true);
+});

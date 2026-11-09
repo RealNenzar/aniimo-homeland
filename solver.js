@@ -32,7 +32,7 @@ export function prepare(catalog, state) {
     const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
     const levels=state.autoWorkers && !r.seconds && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1];
     const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:!!configured}:f}));
-    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:1.2,ability,limited:false}});
+    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100)),ability,limited:false}});
     return modes;
   })).filter(r => {
     const f = r.worker;
@@ -67,6 +67,8 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
       lines.push(`fieldLink${lines.length}: ${expr([[1,`n${i}`],[-r.worker.count,fieldAbilities.get(ability)]])} <= 0`);
     }
   });
+  const climateModes=new Map(),climateAbility={Warm:'Fire',Scorching:'Fire',Cool:'Ice',Freeze:'Ice',Adequate:'Light'};
+  recipes.forEach((r,i)=>{const ability=climateAbility[r.environment];if(!ability)return;let mode=climateModes.get(r.environment);if(!mode){mode={variable:`climate${climateModes.size}`,ability,count:Math.max(1,Number(state.climateReserve?.[r.environment])||1)};climateModes.set(r.environment,mode);integer.push(mode.variable)}lines.push(`climateLink${lines.length}: ${expr([[1,`n${i}`],[-r.worker.count,mode.variable]])} <= 0`)});
   const hours = state.hours;
   recipes.forEach((r,i)=>{
     const f = r.worker, x=`x${i}`, n=`n${i}`, rate=3600/speed(r,f);
@@ -98,12 +100,16 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
     if(terms.length)lines.push(`crew${lines.length}: ${expr(terms)} <= ${Math.max(0,Math.floor(Number(count)||0))}`);
   }
-  if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0;integer.push('generatorCount');lines.push(`power: ${expr([...electrical,[-(Number(p.watts)||0)/1.2,'generatorCount']])} <= 0`);lines.push(`generatorLimit: generatorCount <= ${max}`);objectives.workers.push([-.001,'generatorCount']);}
-  for(const [ability,v] of fieldAbilities){
+  if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0,efficiency=Math.max(.01,Math.min(1.2,Number(p.efficiencyPercent??120)/100));integer.push('generatorCount');lines.push(`power: ${expr([...electrical,[-(Number(p.watts)||0)/efficiency,'generatorCount']])} <= 0`);lines.push(`generatorLimit: generatorCount <= ${max}`);objectives.workers.push([-.001,'generatorCount']);}
+  const combinedAbilities=new Set([...fieldAbilities.keys(),...[...climateModes.values()].map(m=>m.ability),...(electrical.length?['Lightning']:[])]);
+  for(const ability of combinedAbilities){
     const levels=state.workerCounts?.[ability];if(!levels||!Object.values(levels).some(x=>x!==''&&x!==null&&x!==undefined))continue;
     const count=Object.values(levels).reduce((n,x)=>n+Math.max(0,Math.floor(Number(x)||0)),0);
     const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
-    lines.push(`fieldCrew${lines.length}: ${expr([[1,v],...terms])} <= ${count}`);
+    if(fieldAbilities.has(ability))terms.push([1,fieldAbilities.get(ability)]);
+    for(const m of climateModes.values())if(m.ability===ability)terms.push([m.count,m.variable]);
+    if(ability==='Lightning'&&electrical.length)terms.push([1,'generatorCount']);
+    if(terms.length)lines.push(`supportCrew${lines.length}: ${expr(terms)} <= ${count}`);
   }
   const hauling=state.workerCounts?.Hauling;
   if(hauling&&Object.values(hauling).some(x=>x!==''&&x!==null&&x!==undefined)&&Object.values(hauling).every(x=>(Number(x)||0)<=0)){
@@ -112,7 +118,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const rv=Number(state.currentRv)||0;
   if(rv>=2&&rv<=RV_ANIIMO_LIMITS.length){
     const terms=recipes.flatMap((r,i)=>r.seconds||r.worker.electric?[]:[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]);
-    if(electrical.length)terms.push([1,'generatorCount']);for(const v of fieldAbilities.values())terms.push([1,v]);
+    if(electrical.length)terms.push([1,'generatorCount']);for(const v of fieldAbilities.values())terms.push([1,v]);for(const m of climateModes.values())terms.push([m.count,m.variable]);
     if(terms.length)lines.push(`homelandCrew: ${expr(terms)} <= ${RV_ANIIMO_LIMITS[rv-1]-1}`);
   }
   for(const [i,item] of itemIds.entries()) {
@@ -139,10 +145,10 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   for (let i=0;i<fixed.length;i++) {
     const item=fixed[i];
     const allowEventTrade=item.key==='coins' && state.event && coinIndex>=0 && eventIndex>coinIndex && Number(state.eventCoinTolerance)>0;
-    const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(.99,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
+    const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(1,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
-  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
+  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
   return {lp,recipes,sales,objectives,electrical,daily};
 }
 
@@ -167,6 +173,7 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   // Among plans with the same prioritized result, prefer fewer staffed stations.
   if(state.autoWorkers){const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
-  const generators=draw?Math.ceil(draw*1.2/state.power.watts):0;
+  const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
+  const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
   return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }
