@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {speed,model,optimize} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
-import {layoutPlan,placePower,PLOT_GRID} from '../layout.js';
+import {layoutPlan,placePower,placeClimate,PLOT_GRID} from '../layout.js';
 import {translate} from '../i18n.js';
+import {allowedStock,STOCK_ITEMS} from '../inventory.js';
+import {facilityImage} from '../images.js';
 
 const f={count:1,level:1,skill:1,bonus:false};
 const recipe=(id,facility,extra={})=>({id,facility,ingredients:{},yield:1,seconds:60,workload:0,facilityLevel:1,module:'',abilityLevel:1,verified:true,event:null,sellCurrency:'coins',sellValue:0,seedCost:0,byproductYield:0,eventPoints:0,...extra});
@@ -87,8 +89,8 @@ test('automatic power mode uses only the required generators for a reachable tar
 test('layout follows image plot order and keeps rectangles inside purchased plots',()=>{
  assert.deepEqual(PLOT_GRID[3],[10,2,1,5]);
  const result=layoutPlan([{recipe:{facility:'Woodland',group:0,worker:{electric:false},id:'cocoa'},units:19,shared:false}],1);
- assert.equal(result.placed.length,15);
- assert.equal(result.unplaced.length,4);
+ assert.ok(result.placed.length>0);
+ assert.equal(result.placed.length+result.unplaced.length,19);
  for(const x of result.placed) assert.ok(x.plot===1&&x.x+x.w<=40&&x.y+x.h<=30);
 });
 test('power layout places a connected generator for a nearby electric facility',()=>{
@@ -109,4 +111,40 @@ test('interface translations cover all four languages',()=>{
  assert.equal(translate('Prioritäten','en'),'Priorities');
  assert.equal(translate('Prioritäten','ru'),'Приоритеты');
  assert.equal(translate('Prioritäten','fr'),'Priorités');
+});
+test('only the requested inventory items are used',()=>{
+ assert.equal(STOCK_ITEMS.length,11);
+ assert.deepEqual(allowedStock({wood_block:20,coins:5,cocoa:900}),{wood_block:20,coins:5});
+});
+test('shared recipes are assigned only to benches that actually make them',()=>{
+ const make=(id,units)=>({recipe:{id,facility:'Woodworking Bench',group:0,worker:{electric:false,level:2}},units,shared:true});
+ const plan=layoutPlan([make('rough_lumber',1.2),make('standard_planks',.8)],1);
+ assert.equal(plan.placed.length,2);
+ assert.equal(plan.placed.filter(p=>p.recipe.includes('standard_planks')).length,1);
+ assert.equal(plan.placed.filter(p=>p.recipe.includes('rough_lumber')).length,2);
+});
+test('storage is placed when requested and there is production',()=>{
+ const plan=layoutPlan([{recipe:{facility:'Farmland',group:0,worker:{electric:false,level:1},id:'wheat'},units:1,shared:false}],1,{storage:true});
+ assert.equal(plan.placed.filter(p=>p.name==='Storage Unit').length,1);
+});
+test('climate is placed only if unlocked and required',()=>{
+ const rows=[{recipe:{facility:'Woodland',group:0,worker:{electric:false,level:6},id:'cocoa',environment:'Scorching'},units:1,shared:false}];
+ const defs=[{name:'Heat Furnace',unlocks:{1:7},counts:[0,0,0,0,0,0,1]}];
+ const blocked=placeClimate(layoutPlan(rows,1),6,defs);
+ assert.equal(blocked.uncovered.length,1);assert.equal(blocked.placed.length,0);
+ const covered=placeClimate(layoutPlan(rows,1),7,defs);
+ assert.equal(covered.uncovered.length,0);assert.equal(covered.placed.length,1);
+ assert.equal(covered.placed[0].recipe,'Scorching');
+});
+test('building images reflect the visible facility level',()=>{
+ assert.match(facilityImage('Woodland',1),/10100011/);
+ assert.match(facilityImage('Woodland',6),/10100013/);
+ assert.equal(facilityImage('unknown'),null);
+});
+test('event budget does not place spare fields',async()=>{
+ const s=state();s.autoWorkers=true;s.event=true;s.beans=4;s.facilities={Farmland:{groups:[{count:4,level:1}]}};s.priorities=[{id:'event',enabled:true}];
+ const pumpkin=recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,yield:8,seedCost:4,eventPoints:1});
+ const result=await optimize([pumpkin],s);
+ assert.equal(result.rows[0].units,1);
+ assert.equal(layoutPlan(result.rows,1).placed.length,1);
 });

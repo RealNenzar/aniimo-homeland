@@ -14,7 +14,7 @@ Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whi
 
 Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten 120 % Versorgung und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Aniimo mit maximaler bekannter Arbeitsstufe und passendem Persönlichkeitsbonus an. Tatsächlich verfügbare Aniimo werden nicht geprüft.
 
-Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt Produktionsgebäude heuristisch auf gekaufte Flächen. Generatoren und Poles werden mit einem Rasterverfahren verbunden; die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Die tatsächliche Platzierung und Stromversorgung im Spiel prüfen.
+Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Ein Storage Unit, benötigte Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Geteilte Holzbanken und Öfen zeigen nur die dort eingeplanten Rezepte. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
 
 ## Bekannte Grenzen
 
@@ -22,7 +22,7 @@ Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt Produktionsg
 - Passendes Klima wird angenommen, ohne Standort- oder Reichweitenprüfung. Wege, Wechselzeiten, Ernte- und Transportarbeit, Essen und Personalanzahl werden nicht simuliert.
 - Lagerbestand wird über den Zeitraum verteilt; Startzeiten und ganze Chargen werden nicht simuliert.
 - Eventpunkte für Möbel, Aufträge, Mutationen und sonstige Quellen fehlen. Eventdaten und Preise im Spiel überprüfen.
-- Lager, Klimageräte, Wege und Hindernisse werden im Layout nicht platziert. Klimareichweiten werden nicht geprüft; elektrische Reichweiten beruhen auf einem vereinfachten Raster. Nicht platzierte Gebäude und ein unvollständiges Netz werden angezeigt.
+- Klima- und Stromreichweiten beruhen auf einem vereinfachten Raster. Wege, Hindernisse und bereits vorhandene Möbel werden nicht geprüft. Nicht platzierte Gebäude sowie unvollständige Klima- und Stromversorgung werden angezeigt. Wenn sie auftreten, ist die errechnete Produktionsrate für das gezeigte Layout nicht abgesichert.
 - Verfügbare Aniimo, Persönlichkeiten und arbeitende Spezialarten werden nicht automatisch erkannt oder verteilt. Die Annahme maximaler Arbeitsfähigkeiten kann für ein konkretes Homeland zu optimistisch sein.
 - Bei Erreichen des Zeitlimits wird keine Optimalität behauptet.
 

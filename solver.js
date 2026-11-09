@@ -57,6 +57,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
       lines.push(`capacity${i}: ${expr([[1,x],[-rate,n]])} <= 0`); integer.push(n);
       if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([-.0001,n]);}
       else if(!r.seconds) objectives.workers.push([-1,n]);
+      else objectives.workers.push([-.0001,n]);
     }
     if(r.event) objectives.event.push([(r.eventPoints*r.yield + (r.seconds && r.seedCost ? 2 : 0)),x]);
     if(!r.event && r.seedCost) objectives.coins.push([-r.seedCost,x]);
@@ -119,5 +120,5 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   if(state.autoWorkers){const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const generators=draw?Math.ceil(draw*1.2/state.power.watts):0;
-  return {goals:fixed,power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?rate*speed(r,r.worker)/3600:result.Columns[`n${i}`]?.Primal||0}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {goals:fixed,power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }
