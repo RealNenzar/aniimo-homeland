@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {speed,model,optimize} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
-import {layoutPlan,placePower,placeClimate,packClimate,coverageSegments,PLOT_GRID} from '../layout.js';
+import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID} from '../layout.js';
 import {translate} from '../i18n.js';
 import {allowedStock,STOCK_ITEMS} from '../inventory.js';
 import {facilityImage} from '../images.js';
@@ -210,4 +210,15 @@ test('pumpkin event recipe ingredients and seed costs match the supplied list',(
  const expected={candied_lanternfruit:{memory_lanternfruit:8,rock_candy:1},honey_glazed_pumpkin_cup:{sea_salt_roasted_pumpkin:1,candied_lanternfruit:1},magic_pumpkin_cake:{magic_pumpkin:8,milled_rice:1},sea_salt_roasted_pumpkin:{magic_pumpkin:8,sea_salt:23},gleam_fruit_nectar:{memory_lanternfruit:8,fresh_water:8},glowfruit_lantern_set:{memory_lantern:1,magic_pumpkin_lantern:1},magic_pumpkin_lantern:{magic_pumpkin:8},golden_lantern_pumpkin_soup:{magic_pumpkin:8,memory_lanternfruit:8,fresh_water:8},memory_lantern:{memory_lanternfruit:8,cotton_thread:1}};
  for(const [id,ingredients] of Object.entries(expected))assert.deepEqual(catalog.find(r=>r.id===id).ingredients,ingredients);
  for(const id of ['magic_pumpkin','memory_lanternfruit'])assert.equal(catalog.find(r=>r.id===id).seedCost,4);
+});
+
+test('storage limits follow RV and extra storage is distributed',()=>{
+ assert.equal(STORAGE_LIMITS[3],2);assert.equal(STORAGE_LIMITS[17],6);assert.equal(STORAGE_LIMITS[19],8);
+ const plan=layoutPlan([{recipe:{facility:'Woodland',group:0,worker:{electric:false,level:6},id:'cocoa'},units:19,rate:20}],5);
+ const stores=placeStorage(plan,6);assert.equal(stores.length,6);
+ const boxes=[...plan.placed,...stores];for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++){const a=boxes[i],b=boxes[j];if(a.plot===b.plot)assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y)}
+});
+test('incomplete network does not leave poles without covered devices',()=>{
+ const layout={plots:5,placed:[{name:'Power target',plot:5,x:0,y:0,w:80,h:60,electric:true},{name:'Full',plot:1,x:0,y:0,w:80,h:60}]};
+ const result=placePower(layout,1,24);assert.equal(result.generatorsPlaced,1);assert.ok(result.poles<24);
 });

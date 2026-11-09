@@ -14,7 +14,7 @@ Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whi
 
 Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten 120 % Versorgung und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Aniimo mit maximaler bekannter Arbeitsstufe und passendem Persönlichkeitsbonus an. Tatsächlich verfügbare Aniimo werden nicht geprüft.
 
-Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Ein Storage Unit, benötigte Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Jede platzierte Holzbank und jeder Ofen zeigt genau ein Rezept. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
+Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Lager werden bis zur RV-Grenze verteilt; ihre Positionen minimieren näherungsweise gewichtete Luftlinien zu Produktionsstätten. Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Lagergrenzen: [Aniimo Camp](https://aniimocamp.com/). Jede platzierte Holzbank und jeder Ofen zeigt genau ein Rezept. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
 
 ## Bekannte Grenzen
 

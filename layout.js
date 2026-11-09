@@ -9,7 +9,7 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   const climateByPlot=Array(count).fill(null);
   const objects=[], unplaced=[];
   for(const row of rows){
-    for(let i=0;i<Math.ceil(row.units-1e-7);i++) objects.push({name:row.recipe.facility,recipe:row.recipe.id,environment:row.recipe.environment||'',level:row.recipe.worker.level,electric:!!row.recipe.worker.electric});
+    for(let i=0;i<Math.ceil(row.units-1e-7);i++) objects.push({name:row.recipe.facility,recipe:row.recipe.id,environment:row.recipe.environment||'',level:row.recipe.worker.level,electric:!!row.recipe.worker.electric,weight:Math.max(0,Number(row.rate)||0)/Math.max(1,Math.ceil(row.units-1e-7))});
   }
   if(storage&&rows.length)objects.push({name:'Storage Unit',recipe:'',environment:'',level:1,electric:false,infrastructure:true});
   objects.sort((a,b)=>{const x=FOOTPRINTS[a.name]||[2,2],y=FOOTPRINTS[b.name]||[2,2];return Number(b.infrastructure)-Number(a.infrastructure)||Number(b.electric)-Number(a.electric)||(a.environment||'').localeCompare(b.environment||'')||y[0]*y[1]-x[0]*x[1]});
@@ -61,7 +61,7 @@ export function placeClimate(layout, rv, definitions) {
         }
       }
       if(!best)break;
-      const o=position.get(best.plot);for(let y=0;y<best.h;y++)for(let x=0;x<best.w;x++)occupied.add(key(o.x+best.localX+x,o.y+best.localY+y));
+      const o=position.get(best.plot);for(let y=0;y<best.h;y++)for(let x=0;x<best.w;x++)occupied.add(key(o.x+best.x+x,o.y+best.y+y));
       nodes.push({...best,x:best.xg,y:best.yg,localX:best.x,localY:best.y});used[type]=(used[type]||0)+1;
     }
     remaining.push(...targets.filter(t=>!nodes.some(n=>n.mode===mode&&inRange(n,t))));
@@ -75,7 +75,7 @@ export function placePower(layout, generatorCount, poleCap) {
   const occupied=new Set();
   const key=(x,y)=>`${x},${y}`;
   for(const p of layout.placed){const origin=position.get(p.plot);for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)occupied.add(key(origin.x+p.x+x,origin.y+p.y+y));}
-  const targets=layout.placed.filter(p=>p.electric).map(p=>{const o=position.get(p.plot);return {...p,gx:o.x+p.x,gy:o.y+p.y}});
+  const targets=layout.placed.filter(p=>p.electric).map(p=>{const o=position.get(p.plot);return {...p,source:p,gx:o.x+p.x,gy:o.y+p.y}});
   const nodes=[];let generatorsPlaced=0;
   const touches=(node,t)=>node.x+node.radius>t.gx && node.x-node.radius<t.gx+t.w && node.y+node.radius>t.gy && node.y-node.radius<t.gy+t.h;
   const uncovered=()=>targets.filter(t=>!nodes.some(n=>touches(n,t)));
@@ -99,12 +99,29 @@ export function placePower(layout, generatorCount, poleCap) {
   for(let i=0;i<generatorCount;i++){const p=choose(4,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
   let poles=0;
   while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++}
+  // Move uncovered electric facilities into unused powered space when possible.
+  // Climate-dependent facilities stay in place so their growing conditions cannot change.
+  for(const target of uncovered()){
+    if(target.environment||target.name==='Farmland'||target.name==='Woodland')continue;
+    const old=position.get(target.plot);for(let y=0;y<target.h;y++)for(let x=0;x<target.w;x++)occupied.delete(key(old.x+target.x+x,old.y+target.y+y));
+    let spot=null;
+    for(let plot=1;plot<=layout.plots&&!spot;plot++){const o=position.get(plot);
+      for(let y=0;y<=PLOT_HEIGHT-target.h&&!spot;y+=2)for(let x=0;x<=PLOT_WIDTH-target.w&&!spot;x+=2){
+        const candidate={gx:o.x+x,gy:o.y+y,w:target.w,h:target.h};if(!nodes.some(n=>touches(n,candidate)))continue;
+        let free=true;for(let yy=0;yy<target.h&&free;yy++)for(let xx=0;xx<target.w;xx++)if(occupied.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}
+        if(free)spot={plot,x,y,gx:o.x+x,gy:o.y+y};
+      }
+    }
+    if(spot){Object.assign(target,spot);Object.assign(target.source,{plot:spot.plot,x:spot.x,y:spot.y})}
+    const o=position.get(target.plot);for(let y=0;y<target.h;y++)for(let x=0;x<target.w;x++)occupied.add(key(o.x+target.x+x,o.y+target.y+y));
+  }
   // Remove poles that do not contribute to coverage or to the connected network.
-  if(!uncovered().length){
+  {
+    const covered=targets.filter(t=>nodes.some(n=>touches(n,t)));
     const connected=list=>{
       const seen=new Set(list.filter(n=>n.name==='Crackle Generator'));let changed=true;
       while(changed){changed=false;for(const n of list)if(!seen.has(n)&&[...seen].some(o=>Math.abs(n.x-o.x)<n.radius+o.radius&&Math.abs(n.y-o.y)<n.radius+o.radius)){seen.add(n);changed=true}}
-      return seen.size===list.length&&targets.every(t=>list.some(n=>touches(n,t)));
+      return seen.size===list.length&&covered.every(t=>list.some(n=>touches(n,t)));
     };
     for(let i=nodes.length-1;i>=0;i--)if(nodes[i].name==='Crackle Power Pole'&&connected(nodes.filter((_,j)=>j!==i))){nodes.splice(i,1);poles--}
   }
@@ -170,4 +187,23 @@ export function packClimate(layout, rv, definitions) {
   layout.placed=[...fixed,...placed];
   const uncovered=placed.filter(p=>types[p.environment]&&!nodes.some(n=>n.mode===p.environment&&overlap(global(p),square(n))));
   return {placed:nodes,uncovered,complete:uncovered.length===0};
+}
+
+// Storage limits reported by Aniimo Camp for RV levels 1–20.
+export const STORAGE_LIMITS=[0,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,8];
+export function placeStorage(layout, limit){
+ const pos=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
+ const used=new Set(),key=(x,y)=>`${x},${y}`;
+ for(const p of layout.placed){const o=pos.get(p.plot);for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)used.add(key(o.x+p.x+x,o.y+p.y+y))}
+ const targets=layout.placed.filter(p=>!p.infrastructure&&p.name!=='Storage Unit').map(p=>{const o=pos.get(p.plot);return {x:o.x+p.x+p.w/2,y:o.y+p.y+p.h/2,weight:Math.max(.001,Number(p.weight)||1)}});
+ const stores=[];if(!targets.length)return stores;
+ for(let i=0;i<Math.max(0,Math.floor(limit));i++){let best=null;
+  for(let plot=1;plot<=layout.plots;plot++){const o=pos.get(plot);for(let y=0;y<=PLOT_HEIGHT-8;y+=4)for(let x=0;x<=PLOT_WIDTH-8;x+=4){
+   let free=true;for(let yy=0;yy<8&&free;yy++)for(let xx=0;xx<8;xx++)if(used.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}if(!free)continue;
+   const cx=o.x+x+4,cy=o.y+y+4;const score=targets.reduce((sum,t)=>{const d=Math.hypot(t.x-cx,t.y-cy);return sum+t.weight*Math.min(d,...stores.map(s=>Math.hypot(t.x-s.cx,t.y-s.cy)))},0);
+   if(!best||score<best.score)best={plot,x,y,cx,cy,score};
+  }}
+  if(!best)break;const o=pos.get(best.plot);for(let y=0;y<8;y++)for(let x=0;x<8;x++)used.add(key(o.x+best.x+x,o.y+best.y+y));stores.push({...best,name:'Storage Unit',recipe:'',w:8,h:8,level:1,electric:false,infrastructure:true});
+ }
+ return stores;
 }

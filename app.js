@@ -1,7 +1,7 @@
 import {presetFacilities, facilityGroups} from './facilities.js';
 import {ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, poleLimit, powerSummary} from './power.js';
 import {translatePage, translate, gameTerm} from './i18n.js';
-import {layoutPlan, placePower, placeClimate, packClimate, coverageSegments, PLOT_GRID, PLOT_WIDTH, PLOT_HEIGHT} from './layout.js';
+import {layoutPlan, placePower, placeClimate, packClimate, placeStorage, STORAGE_LIMITS, coverageSegments, PLOT_GRID, PLOT_WIDTH, PLOT_HEIGHT} from './layout.js';
 import {STOCK_ITEMS, STOCK_LABELS, allowedStock} from './inventory.js';
 import {facilityImage} from './images.js';
 import {displayName,hasTranslation} from './names.js';
@@ -126,9 +126,9 @@ function renderResult(r){
   state=currentState;
 }
 function renderLayout(r){
-  const layout=layoutPlan(r.rows,state.plotCount,{storage:state.currentRv>=2});
+  const layout=layoutPlan(r.rows,state.plotCount);
   const climate=packClimate(layout,state.currentRv,climateDefinitions);layout.placed.push(...climate.placed);
-  const grid=placePower(layout,r.power?.generators||0,poleLimit(state.power.module));layout.placed.push(...grid.placed);
+  const grid=placePower(layout,r.power?.generators||0,poleLimit(state.power.module));layout.placed.push(...grid.placed);const storages=placeStorage(layout,STORAGE_LIMITS[Math.max(0,Math.min(19,(state.currentRv||1)-1))]);layout.placed.push(...storages);
   const groups=new Map();
   for(const p of layout.placed){const key=JSON.stringify([p.name,p.recipe,p.level||1,!!p.electric]);if(!groups.has(key))groups.set(key,{...p,count:0});groups.get(key).count++;p.key=key}
   const overlays=[...climate.placed.flatMap(p=>coverageSegments(p,18).map(segment=>({...segment,kind:'climate',mode:p.mode}))),...grid.placed.flatMap(p=>coverageSegments(p,p.name==='Crackle Generator'?22:14).map(segment=>({...segment,kind:p.name==='Crackle Generator'?'generator':'pole'})))];
