@@ -7,19 +7,9 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   const count=Math.max(1,Math.min(16,Number(boughtPlots)||1));
   const plots=Array.from({length:count},()=>Array.from({length:PLOT_HEIGHT},()=>new Uint8Array(PLOT_WIDTH)));
   const climateByPlot=Array(count).fill(null);
-  const grouped=new Map(), objects=[], unplaced=[];
+  const objects=[], unplaced=[];
   for(const row of rows){
-    const key=`${row.recipe.facility}:${row.recipe.group}:${row.recipe.worker.electric?'e':'a'}`;
-    if(row.shared){const group=grouped.get(key)||[];group.push(row);grouped.set(key,group)}
-    else for(let i=0;i<Math.round(row.units);i++) objects.push({name:row.recipe.facility,recipe:row.recipe.id,environment:row.recipe.environment||'',level:row.recipe.worker.level,electric:!!row.recipe.worker.electric});
-  }
-  for(const group of grouped.values()){
-    const bins=[];
-    for(const row of group){let remaining=row.units;
-      while(remaining>1e-7){let bin=bins.find(x=>x.load<1-1e-7);if(!bin){bin={load:0,recipes:[]};bins.push(bin)}
-        const amount=Math.min(1-bin.load,remaining);bin.load+=amount;bin.recipes.push(row.recipe.id);remaining-=amount;}
-    }
-    for(const bin of bins){const row=group[0];objects.push({name:row.recipe.facility,recipe:bin.recipes.join(' / '),environment:'',level:row.recipe.worker.level,electric:!!row.recipe.worker.electric})}
+    for(let i=0;i<Math.ceil(row.units-1e-7);i++) objects.push({name:row.recipe.facility,recipe:row.recipe.id,environment:row.recipe.environment||'',level:row.recipe.worker.level,electric:!!row.recipe.worker.electric});
   }
   if(storage&&rows.length)objects.push({name:'Storage Unit',recipe:'',environment:'',level:1,electric:false,infrastructure:true});
   objects.sort((a,b)=>{const x=FOOTPRINTS[a.name]||[2,2],y=FOOTPRINTS[b.name]||[2,2];return Number(b.infrastructure)-Number(a.infrastructure)||Number(b.electric)-Number(a.electric)||(a.environment||'').localeCompare(b.environment||'')||y[0]*y[1]-x[0]*x[1]});

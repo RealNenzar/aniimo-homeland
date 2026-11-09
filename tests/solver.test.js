@@ -34,11 +34,13 @@ test('RV progress cannot be created when target item is missing',async()=>{
  const result=await optimize([recipe('crop','Farmland')],s);
  assert.equal(result.goals[0].value,0);
 });
-test('one woodworking bench can share time between tiers',async()=>{
+test('one woodworking bench cannot run two recipes',async()=>{
  const s=state();s.facilities={'Woodworking Bench':f};s.stock={wood_block:16};s.targets={plank:1};s.priorities=[{id:'rv',enabled:true}];
- const result=await optimize([recipe('lumber','Woodworking Bench',{ingredients:{wood_block:8},sellCurrency:'none'}),recipe('plank','Woodworking Bench',{ingredients:{lumber:2},sellCurrency:'none'})],s);
- assert.ok(result.goals[0].value>.99);
- assert.equal(result.rows.length,2);
+ const recipes=[recipe('lumber','Woodworking Bench',{ingredients:{wood_block:8},sellCurrency:'none'}),recipe('plank','Woodworking Bench',{ingredients:{lumber:2},sellCurrency:'none'})];
+ assert.equal((await optimize(recipes,s)).goals[0].value,0);
+ s.facilities['Woodworking Bench']={...f,count:2};const result=await optimize(recipes,s);
+ assert.ok(result.goals[0].value>.99);assert.equal(result.rows.length,2);
+ assert.ok(result.rows.every(row=>!row.shared&&row.units===1));
 });
 test('nineteen cocoa plots produce the expected wood block rate',async()=>{
  const s=state();s.facilities={Woodland:{...f,count:19}};s.priorities=[{id:'wood',enabled:true}];
@@ -117,12 +119,10 @@ test('only the requested inventory items are used',()=>{
  assert.equal(STOCK_ITEMS.length,11);
  assert.deepEqual(allowedStock({wood_block:20,coins:5,cocoa:900}),{wood_block:20,coins:5});
 });
-test('shared recipes are assigned only to benches that actually make them',()=>{
- const make=(id,units)=>({recipe:{id,facility:'Woodworking Bench',group:0,worker:{electric:false,level:2}},units,shared:true});
- const plan=layoutPlan([make('rough_lumber',1.2),make('standard_planks',.8)],1);
- assert.equal(plan.placed.length,2);
- assert.equal(plan.placed.filter(p=>p.recipe.includes('standard_planks')).length,1);
- assert.equal(plan.placed.filter(p=>p.recipe.includes('rough_lumber')).length,2);
+test('each bench is placed with exactly one recipe',()=>{
+ const make=id=>({recipe:{id,facility:'Woodworking Bench',group:0,worker:{electric:false,level:2}},units:1});
+ const plan=layoutPlan([make('rough_lumber'),make('standard_planks')],1);
+ assert.equal(plan.placed.length,2);assert.deepEqual(plan.placed.map(p=>p.recipe).sort(),['rough_lumber','standard_planks']);
 });
 test('storage is placed when requested and there is production',()=>{
  const plan=layoutPlan([{recipe:{facility:'Farmland',group:0,worker:{electric:false,level:1},id:'wheat'},units:1,shared:false}],1,{storage:true});

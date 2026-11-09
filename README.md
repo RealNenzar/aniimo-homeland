@@ -8,13 +8,13 @@ RV-Level wählen: Der Planer übernimmt die maximal verfügbaren Gebäude und de
 
 ## Berechnung
 
-HiGHS löst ein gemischt-ganzzahliges Modell: Rohstoffe, Zwischenprodukte und Bestände werden bilanziert; die Kapazität der Gebäude ist begrenzt. Felder und normale Produktionsstätten sind einem Rezept zugeordnet. Woodworking Bench und Chimney Kiln teilen ihre Zeit zwischen Rezepten. Ziele werden in Reihenfolge optimiert und vorher erreichte Werte erhalten. RV-Level-up maximiert den erreichbaren Anteil der Kosten im Zeitraum; es berechnet nicht die exakte Dauer.
+HiGHS löst ein gemischt-ganzzahliges Modell: Rohstoffe, Zwischenprodukte und Bestände werden bilanziert; die Kapazität der Gebäude ist begrenzt. Jedes Gebäude ist einem Rezept zugeordnet, einschließlich Woodworking Bench und Chimney Kiln. Ziele werden in Reihenfolge optimiert und vorher erreichte Werte erhalten. RV-Level-up maximiert den erreichbaren Anteil der Kosten im Zeitraum; es berechnet nicht die exakte Dauer.
 
 Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whimsy Points als eigenes Ziel behandelt. Shop-Rezepte müssen freigeschaltet werden. Einzelne Rezepte können bei fehlender Freischaltung deaktiviert werden. Die RV-Kosten 2–20 stammen aus Aniimax und lassen sich überschreiben.
 
 Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten 120 % Versorgung und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Aniimo mit maximaler bekannter Arbeitsstufe und passendem Persönlichkeitsbonus an. Tatsächlich verfügbare Aniimo werden nicht geprüft.
 
-Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Ein Storage Unit, benötigte Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Geteilte Holzbanken und Öfen zeigen nur die dort eingeplanten Rezepte. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
+Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Ein Storage Unit, benötigte Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Jede platzierte Holzbank und jeder Ofen zeigt genau ein Rezept. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes Minimum. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
 
 ## Bekannte Grenzen
 
