@@ -7,3 +7,11 @@
 .layout-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}.layout-controls>span:first-child{font-size:12px;font-weight:700}.layout-controls button{min-width:38px}.layout-scroll{max-height:78vh;overflow:auto}.layout-grid{width:calc(100% * var(--layout-scale,1));min-width:calc(760px * var(--layout-scale,1))}
 
 .roster-row{display:grid;grid-template-columns:2fr 1.5fr .7fr 1.5fr .7fr auto;gap:.6rem;align-items:end;margin:.7rem 0}.roster-row label{min-width:0}.roster-row input,.roster-row select{width:100%}@media(max-width:800px){.roster-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* One background cell represents one in-game tile; buildings snap to quarter tiles. */
+.layout-grid{gap:0}
+.layout-plot{border-radius:0;background-image:linear-gradient(to right,#64896940 1px,transparent 1px),linear-gradient(to bottom,#64896940 1px,transparent 1px);background-size:5% 100%,100% 6.6666667%}
+.layout-plot.locked{background-image:none}
+.climate-coverage{position:absolute;z-index:1;pointer-events:none;background:#f39b3d45;border:1px solid #e87e35;box-sizing:border-box}
+.climate-Cool,.climate-Freeze{background:#5faeea45;border-color:#4597d8}.climate-Adequate{background:#f6df5745;border-color:#d9b831}
+.layout-object{z-index:2}.plot-title{z-index:3;pointer-events:none}

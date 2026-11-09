@@ -1,9 +1,10 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {speed,model,optimize} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
-import {layoutPlan,placePower,placeClimate,PLOT_GRID} from '../layout.js';
+import {layoutPlan,placePower,placeClimate,packClimate,coverageSegments,PLOT_GRID} from '../layout.js';
 import {translate} from '../i18n.js';
 import {allowedStock,STOCK_ITEMS} from '../inventory.js';
 import {facilityImage} from '../images.js';
@@ -151,4 +152,23 @@ test('event budget does not place spare fields',async()=>{
 test('layout preserves quarter-tile facility dimensions',()=>{
  const plan=layoutPlan([{recipe:{facility:'Blazing Stove',group:0,worker:{electric:false,level:1},id:'food'},units:1,shared:false}],1);
  assert.deepEqual([plan.placed[0].w,plan.placed[0].h],[10,7]);
+});
+
+test('climate packing covers cocoa woodland with physically valid 9 by 9 areas',()=>{
+ const defs=JSON.parse(readFileSync(new URL('../data/climate-facilities.json',import.meta.url)));
+ const layout=layoutPlan([{recipe:{facility:'Woodland',group:0,worker:{electric:false},id:'cocoa',environment:'Scorching'},units:19}],5);
+ const climate=packClimate(layout,20,defs);
+ assert.equal(climate.uncovered.length,0);assert.equal(layout.unplaced.length,0);assert.equal(layout.placed.length,19);
+ for(const crop of layout.placed){assert.ok(climate.placed.some(node=>coverageSegments(node,18).some(area=>area.plot===crop.plot&&area.x<crop.x+crop.w&&area.x+area.w>crop.x&&area.y<crop.y+crop.h&&area.y+area.h>crop.y)));}
+});
+test('climate overlay clips across plot boundaries',()=>{
+ const areas=coverageSegments({plot:1,x:76,y:20,w:4,h:4},18);
+ assert.ok(areas.some(a=>a.plot===1));assert.ok(areas.some(a=>a.plot===5));
+});
+
+test('power devices use coordinates local to their actual plot',()=>{
+ const layout={plots:5,placed:[{name:'Work',plot:5,x:24,y:24,w:8,h:8,electric:true}]};
+ const result=placePower(layout,1,0);
+ assert.equal(result.complete,true);
+ for(const p of result.placed){assert.ok(p.x>=0&&p.x+p.w<=80&&p.y>=0&&p.y+p.h<=60)}
 });
