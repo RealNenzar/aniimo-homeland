@@ -15,3 +15,7 @@
 .climate-coverage{position:absolute;z-index:1;pointer-events:none;background:#f39b3d45;border:1px solid #e87e35;box-sizing:border-box}
 .climate-Cool,.climate-Freeze{background:#5faeea45;border-color:#4597d8}.climate-Adequate{background:#f6df5745;border-color:#d9b831}
 .layout-object{z-index:2}.plot-title{z-index:3;pointer-events:none}
+
+.power-generator{background:#efc5313b;border-color:#d8a600}.power-pole{background:#a768e03b;border-color:#9851d5}.coverage-key{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:8px 0}.coverage-key span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:middle}.climate-key::before{background:#f39b3d85}.generator-key::before{background:#efc531a0}.pole-key::before{background:#a768e0a0}.team-dot{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--ability);color:#fff;font-weight:700;font-size:12px;flex:none}.team-table td{vertical-align:top}.team-jobs{display:flex;flex-wrap:wrap;gap:8px}.team-job{display:inline-flex;align-items:center;gap:5px;padding:5px;border:1px solid var(--border,#aaa);border-radius:6px}
+
+.team-strip{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.team-ability{min-width:78px;display:grid;grid-template-columns:auto 1fr;gap:4px 7px;align-items:center;padding:8px;border:1px solid var(--border,#aaa);border-radius:8px}.team-ability small{grid-column:1 / -1;font-size:11px}

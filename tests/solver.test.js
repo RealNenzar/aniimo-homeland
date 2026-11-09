@@ -172,3 +172,21 @@ test('power devices use coordinates local to their actual plot',()=>{
  assert.equal(result.complete,true);
  for(const p of result.placed){assert.ok(p.x>=0&&p.x+p.w<=80&&p.y>=0&&p.y+p.h<=60)}
 });
+import {buildTeam} from '../staffing.js';
+
+test('team shares compatible personalities but separates opposites',()=>{
+ const task=(facility)=>({recipe:{facility,id:'dish',worker:{skill:4,bonus:true},workload:3600,abilityLevel:1},units:1,rate:1.2});
+ const result={rows:[task('Claw Game Cooker'),task('Simmering Pot'),task('Blazing Stove')],power:{generators:1}};
+ const team=buildTeam(result,{climate:{placed:[{name:'Heat Furnace',mode:'Warm'}]},grid:{placed:[]}},[]);
+ assert.equal(team.groups.filter(g=>g.ability==='Fire'&&g.level===null).length,1);
+ assert.equal(team.groups.filter(g=>g.ability==='Lightning'&&g.level===null).length,1);
+ const production=team.groups.filter(g=>g.ability==='Fire'&&g.level===4);
+ assert.ok(production.some(g=>g.personalities.includes('Practical')&&g.personalities.includes('Tenacious')));
+ assert.ok(production.every(g=>!(g.personalities.includes('Practical')&&g.personalities.includes('Nimble'))));
+});
+
+test('growing jobs are listed without inventing workload',()=>{
+ const result={rows:[{recipe:{id:'cocoa',facility:'Woodland',seconds:2400},rate:1}],power:{generators:0}};
+ const team=buildTeam(result,{climate:{placed:[]},grid:{placed:[]}},[{name:'cocoa',facility:'Woodland',step:'Logging',ability:'Dark',min_level:'2'}]);
+ assert.deepEqual(team.jobs,[{ability:'Dark',level:2,step:'Logging',facility:'Woodland'}]);assert.equal(team.groups.length,0);
+});
