@@ -55,3 +55,5 @@ input,select,.quiet{background:#fff;color:#111}
 .roster-ability{display:flex;align-items:center;gap:5px;min-width:0}.roster-ability img{width:28px;height:28px;object-fit:contain}.roster-ability select{min-width:0}
 
 .layout-scroll{cursor:grab;touch-action:none}.layout-scroll.dragging{cursor:grabbing;user-select:none}.layout-scroll.dragging *{cursor:grabbing!important}
+
+.daily-row{display:grid;grid-template-columns:120px 150px minmax(180px,1fr) auto auto;gap:10px;align-items:center}.daily-row label:not(.check){display:flex;flex-direction:column;align-items:stretch}.daily-row input[type=number]{width:100%}@media(max-width:800px){.daily-row{grid-template-columns:repeat(2,minmax(0,1fr))}}

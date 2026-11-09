@@ -195,3 +195,19 @@ test('event may trade at most ten percent of coin optimum',async()=>{
  const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,eventPoints:1,seedCost:4}),recipe('wheat','Farmland',{seconds:3600,sellValue:100})];
  const result=await optimize(recipes,s);assert.ok(result.goals[0].value>=900-1e-4);assert.ok(result.goals[1].value>0);assert.ok(result.rows.some(r=>r.recipe.id==='pumpkin'));
 });
+test('daily orders reserve materials and count only complete orders',async()=>{
+ const s=state();s.facilities={Farmland:{...f,count:10}};s.daily=[{item:'wheat',count:4,quantity:3,priority:true}];s.priorities=[{id:'daily',enabled:true},{id:'coins',enabled:true}];
+ const result=await optimize([recipe('wheat','Farmland',{seconds:3600,sellValue:10})],s);
+ assert.equal(result.daily[0].completed,3);assert.ok(result.sales.reduce((n,x)=>n+x.rate,0)<=1.00001);
+});
+test('inactive daily orders do not consume materials',async()=>{
+ const s=state();s.facilities={Farmland:{...f,count:10}};s.daily=[{item:'wheat',count:3,quantity:3}];
+ const result=await optimize([recipe('wheat','Farmland',{seconds:3600,sellValue:10})],s);
+ assert.equal(result.daily[0].completed,0);assert.ok(result.goals[0].value>99);
+});
+test('pumpkin event recipe ingredients and seed costs match the supplied list',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
+ const expected={candied_lanternfruit:{memory_lanternfruit:8,rock_candy:1},honey_glazed_pumpkin_cup:{sea_salt_roasted_pumpkin:1,candied_lanternfruit:1},magic_pumpkin_cake:{magic_pumpkin:8,milled_rice:1},sea_salt_roasted_pumpkin:{magic_pumpkin:8,sea_salt:23},gleam_fruit_nectar:{memory_lanternfruit:8,fresh_water:8},glowfruit_lantern_set:{memory_lantern:1,magic_pumpkin_lantern:1},magic_pumpkin_lantern:{magic_pumpkin:8},golden_lantern_pumpkin_soup:{magic_pumpkin:8,memory_lanternfruit:8,fresh_water:8},memory_lantern:{memory_lanternfruit:8,cotton_thread:1}};
+ for(const [id,ingredients] of Object.entries(expected))assert.deepEqual(catalog.find(r=>r.id===id).ingredients,ingredients);
+ for(const id of ['magic_pumpkin','memory_lanternfruit'])assert.equal(catalog.find(r=>r.id===id).seedCost,4);
+});

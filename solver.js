@@ -46,10 +46,13 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   recipes.forEach(r => { items.add(r.output); Object.keys(r.ingredients).forEach(i=>items.add(i)); if(r.byproductYield && r.facility==='Woodland') items.add('wood_block'); if(r.byproductYield && r.facility==='Mine') items.add('mineral_sand'); });
   Object.keys(state.stock).filter(x=>x!=='coins').forEach(x=>items.add(x));
   Object.keys(state.targets).filter(x=>x!=='coins').forEach(x=>items.add(x));
+  const dailyEnabled=(state.priorities||[]).some(p=>p.id==='daily'&&p.enabled);
+  const daily=(state.daily||[]).filter(d=>d.item && Number(d.count)>0 && Number(d.quantity)>0);daily.forEach(d=>items.add(d.item));
   const itemIds = [...items].sort(); const itemIndex = Object.fromEntries(itemIds.map((v,i)=>[v,i]));
   const sales = itemIds.map((item,i)=>({item,var:`s${i}`,price:recipes.find(r=>r.output===item && r.sellCurrency==='coins')?.sellValue||0}));
   const lines = [], integer = [], electrical=[];
-  const objectives = {coins:[],event:[],rv:[[1,'progress']],wood:[],sand:[],workers:[]};
+  const objectives = {coins:[],event:[],rv:[[1,'progress']],wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
+  daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
   const hours = state.hours;
   recipes.forEach((r,i)=>{
     const f = r.worker, x=`x${i}`, n=`n${i}`, rate=3600/speed(r,f);
@@ -84,6 +87,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
       if(item==='mineral_sand' && r.facility==='Mine') c+=r.byproductYield;
       if(c) terms.push([c,`x${j}`]);
     });
+    daily.forEach((d,j)=>{if(d.item===item)terms.push([-Number(d.quantity)/hours,`d${j}`])});
     const sale=sales[i]; if(sale.price) terms.push([-1,sale.var]);
     const rvNeed=Number(state.targets[item])||0; if(rvNeed) terms.push([-rvNeed/hours,'progress']);
     lines.push(`balance${i}: ${expr(terms)} >= ${-(state.stock[item]||0)/hours}`);
@@ -102,8 +106,8 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(.99,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
-  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...(integer.length?['General',...integer]:[]),'End'].join('\n');
-  return {lp,recipes,sales,objectives,electrical};
+  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
+  return {lp,recipes,sales,objectives,electrical,daily};
 }
 
 export async function optimize(catalog,state,onProgress=()=>{}) {
@@ -112,7 +116,8 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
     if (rv<12 || p.module<1 || p.module>5 || rv<MODULE_RV[p.module] || p.level>p.module || p.watts<=0 || p.watts>GENERATOR_WATTS[p.level]) throw Error('Stromnetz prüfen: RV-Level, Power Module, Generatoren oder Poles überschreiten die Freischaltung.');
   }
   const highs=await highsModule({print:()=>{},printErr:()=>{}}), fixed=[];
-  const goals=state.priorities.filter(p=>p.enabled).map(p=>p.id);
+  const goals=state.priorities.filter(p=>p.enabled).flatMap(p=>p.id==='daily'&&(state.daily||[]).some(d=>d.priority&&Number(d.count)>0)?['daily_priority','daily']:[p.id]);
+  if(goals.includes('daily')&&!(state.daily||[]).some(d=>Number(d.count)>0&&Number(d.quantity)>0)) throw Error('Bitte mindestens einen Eventauftrag eintragen.');
   if(!goals.length) throw Error('Bitte mindestens eine Priorität aktivieren.');
   if(goals.includes('rv') && !Object.values(state.targets).some(n=>n>0)) throw Error('Für RV-Level-up mindestens ein Zielmaterial eintragen.');
   let result,problem;
@@ -127,5 +132,5 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   if(state.autoWorkers){const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const generators=draw?Math.ceil(draw*1.2/state.power.watts):0;
-  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }
