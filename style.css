@@ -19,3 +19,37 @@
 .power-generator{background:#efc5313b;border-color:#d8a600}.power-pole{background:#a768e03b;border-color:#9851d5}.coverage-key{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:8px 0}.coverage-key span::before{content:"";display:inline-block;width:12px;height:12px;margin-right:5px;vertical-align:middle}.climate-key::before{background:#f39b3d85}.generator-key::before{background:#efc531a0}.pole-key::before{background:#a768e0a0}.team-dot{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%;background:var(--ability);color:#fff;font-weight:700;font-size:12px;flex:none}.team-table td{vertical-align:top}.team-jobs{display:flex;flex-wrap:wrap;gap:8px}.team-job{display:inline-flex;align-items:center;gap:5px;padding:5px;border:1px solid var(--border,#aaa);border-radius:6px}
 
 .team-strip{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.team-ability{min-width:78px;display:grid;grid-template-columns:auto 1fr;gap:4px 7px;align-items:center;padding:8px;border:1px solid var(--border,#aaa);border-radius:8px}.team-ability small{grid-column:1 / -1;font-size:11px}
+/* Neutral light and anthracite themes. Colored map overlays and ability icons retain meaning. */
+:root{color-scheme:light;background:#fff;color:#111}
+body{background:#fff;color:#111}
+header,.card,.empty,.quiet,input,select{background:#fff;color:#111;border-color:#c9c9c9}
+.brand b,.brand small,.mark,.badge,.eyebrow,.heading p,.card p,label,th,.hint,.recipe small,.planrow small,.metric strong,.metric small,.layout-detail,.layout-legend small,footer{color:#222!important}
+.badge,.recipe,.metric,.priority button{background:#f2f2f2;color:#111}
+.tabs,.priority,.planrow,td,th{border-color:#d7d7d7}
+.tabs button,.tabs button span,.tabs button.active,.tabs button.active span{color:#222}
+.tabs button.active{border-color:#111}
+input,select,.quiet{background:#fff;color:#111}
+.primary{background:#252525;border-color:#252525;color:#fff}
+.empty h3{color:#111}.empty span{color:#555}a{color:#202020;text-decoration:underline}
+.warning{background:#f4f0e5;color:#222}.layout-invalid{background:#fbecea;color:#681d19}
+.layout-plot{background-color:#f4f4f4;border-color:#aaa;background-image:linear-gradient(to right,#7774 1px,transparent 1px),linear-gradient(to bottom,#7774 1px,transparent 1px)}
+.layout-plot.locked{background:#e1e1e1;border-color:#bbb}.plot-title{color:#333}.layout-object,.layout-object.electric{background:#fafafa;color:#111;border-color:#888}.layout-object .layout-caption{background:#202020e8;color:#fff}.layout-legend{border-color:#ccc}
+[data-theme="dark"]{color-scheme:dark;background:#1b1c1e;color:#fff}
+[data-theme="dark"] body{background:#1b1c1e;color:#fff}
+[data-theme="dark"] header,[data-theme="dark"] .card,[data-theme="dark"] .empty{background:#27292c;border-color:#494b4e;color:#fff}
+[data-theme="dark"] .brand b,[data-theme="dark"] .brand small,[data-theme="dark"] .mark,[data-theme="dark"] .badge,[data-theme="dark"] .eyebrow,[data-theme="dark"] .heading p,[data-theme="dark"] .card p,[data-theme="dark"] label,[data-theme="dark"] th,[data-theme="dark"] .hint,[data-theme="dark"] .recipe small,[data-theme="dark"] .planrow small,[data-theme="dark"] .metric strong,[data-theme="dark"] .metric small,[data-theme="dark"] .layout-detail,[data-theme="dark"] .layout-legend small,[data-theme="dark"] footer{color:#f5f5f5!important}
+[data-theme="dark"] .quiet,[data-theme="dark"] input,[data-theme="dark"] select{background:#303236;color:#fff;border-color:#666}
+[data-theme="dark"] .primary{background:#f2f2f2;border-color:#f2f2f2;color:#161616}
+[data-theme="dark"] .badge,[data-theme="dark"] .recipe,[data-theme="dark"] .metric,[data-theme="dark"] .priority button{background:#383a3e;color:#fff}
+[data-theme="dark"] .tabs,[data-theme="dark"] td,[data-theme="dark"] th,[data-theme="dark"] .priority,[data-theme="dark"] .planrow{border-color:#515357}
+[data-theme="dark"] .tabs button,[data-theme="dark"] .tabs button span,[data-theme="dark"] .tabs button.active,[data-theme="dark"] .tabs button.active span,[data-theme="dark"] .empty h3{color:#fff}
+[data-theme="dark"] .tabs button.active{border-color:#fff}[data-theme="dark"] a{color:#fff}
+[data-theme="dark"] .warning{background:#52442a;color:#fff}[data-theme="dark"] .layout-invalid{background:#572d2d;color:#fff}
+[data-theme="dark"] .layout-plot{background-color:#303236;border-color:#67696c;background-image:linear-gradient(to right,#ccc3 1px,transparent 1px),linear-gradient(to bottom,#ccc3 1px,transparent 1px)}
+[data-theme="dark"] .layout-plot.locked{background:#222426;border-color:#484a4d}[data-theme="dark"] .plot-title{color:#eee}
+[data-theme="dark"] .layout-object,[data-theme="dark"] .layout-object.electric{background:#505256;color:#fff;border-color:#a5a5a5}
+[data-theme="dark"] .layout-legend{border-color:#666}
+.team-dot{position:relative;width:34px;height:34px;background:transparent;overflow:visible}
+.team-dot img{display:block;width:100%;height:100%;object-fit:contain}
+.team-level{position:absolute;right:-4px;bottom:-4px;display:flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 2px;border-radius:50%;background:#111;color:#fff;border:1px solid #fff;font-size:10px;line-height:1}
+.roster-ability{display:flex;align-items:center;gap:5px;min-width:0}.roster-ability img{width:28px;height:28px;object-fit:contain}.roster-ability select{min-width:0}

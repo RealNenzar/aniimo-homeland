@@ -34,6 +34,8 @@ Referenzen: [Arbeitsmechanik](https://aniimotools.dev/systems/homeland/aniimo-at
 
 Strombedarf, E-Mode und Generatorwerte: [MOANIIMO E-Mode Guide](https://aniimo.kr/en/systems/camper-home-electric-mode-guide); Plot-Reihenfolge und Reichweiten wurden mit [Aniiland Floor Layout](https://aniiland.wintira.win/homeland/floor-layout/) abgeglichen.
 
+Die Fähigkeitssymbole in `assets/abilities` stammen von [AniimoTools](https://aniimotools.dev/systems/homeland/aniimo-at-work/); Spielgrafiken gehören ihren jeweiligen Rechteinhabern.
+
 Der Optimierer nutzt [HiGHS](https://highs.dev/) über WebAssembly; dessen MIT-Lizenz liegt unter `vendor/highs/LICENSE`.
 
 ## Lokal starten und prüfen
