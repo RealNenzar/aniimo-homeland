@@ -1,10 +1,11 @@
 // Plot order and approximate facility footprints, in game tiles (Aniimax data).
+export const GRID_SCALE=4, PLOT_WIDTH=80, PLOT_HEIGHT=60;
 export const PLOT_GRID = [[13,14,15,16],[12,7,8,9],[11,4,3,6],[10,2,1,5]];
 export const FOOTPRINTS = {'Farmland':[2,2],'Woodland':[4,4],'Mine':[5,5],'Well':[2,2],'Tidewhisper Sandcastle':[5,5],'Dewy House':[2,2],'Nimbus Bed':[5,5],'Starfall Hammock':[5,5],'Floral Windmill':[5,5],'Carousel Mill':[5.5,5.5],'Crafting Table':[4,4],'Claw Game Cooker':[3.5,3.5],'Simmering Pot':[1.5,1.5],'Phonolfactory Table':[3.5,3.5],'Bouncy Brew Keg':[3,3],'Blazing Stove':[2.5,1.75],'Pickling Jar':[2.5,2],'Jukebox Dryer':[2.5,2.5],'Joy Wheel Loom':[4,4],'Woodworking Bench':[2,1.5],'Chimney Kiln':[5.5,5.5],'Dance Pad Polisher':[2.5,2.5],'Aniipod Maker':[4.5,4.5],'Storage Unit':[2,2]};
 
 export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   const count=Math.max(1,Math.min(16,Number(boughtPlots)||1));
-  const plots=Array.from({length:count},()=>Array.from({length:30},()=>new Uint8Array(40)));
+  const plots=Array.from({length:count},()=>Array.from({length:PLOT_HEIGHT},()=>new Uint8Array(PLOT_WIDTH)));
   const climateByPlot=Array(count).fill(null);
   const grouped=new Map(), objects=[], unplaced=[];
   for(const row of rows){
@@ -25,12 +26,12 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   const placed=[];
   for(const item of objects){
     const size=FOOTPRINTS[item.name];if(!size){unplaced.push(item);continue}
-    const w=Math.ceil(size[0]*2), h=Math.ceil(size[1]*2);let found=false;
+    const w=Math.ceil(size[0]*GRID_SCALE), h=Math.ceil(size[1]*GRID_SCALE);let found=false;
     const climateSensitive=item.name==='Farmland'||item.name==='Woodland'||!!item.environment;
     const mode=item.environment||'neutral';
     const order=Array.from({length:count},(_,i)=>i).sort((a,b)=>Number(climateByPlot[b]===mode)-Number(climateByPlot[a]===mode)||a-b);
     for(const pi of order){if(found)break;if(climateSensitive&&climateByPlot[pi]!==null&&climateByPlot[pi]!==mode)continue;
-    for(let y=3;y<=30-h&&!found;y++)for(let x=3;x<=40-w&&!found;x++){
+    for(let y=6;y<=PLOT_HEIGHT-h&&!found;y+=2)for(let x=6;x<=PLOT_WIDTH-w&&!found;x+=2){
       let free=true;for(let yy=y;yy<y+h&&free;yy++)for(let xx=x;xx<x+w;xx++)if(plots[pi][yy][xx]){free=false;break}
       if(!free)continue;
       for(let yy=y;yy<y+h;yy++)plots[pi][yy].fill(1,x,x+w);
@@ -44,22 +45,22 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
 // Separate climate modes cannot share a device. Never claim coverage if a candidate
 // reaches a crop needing a different environment; this is intentionally conservative.
 export function placeClimate(layout, rv, definitions) {
-  const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*40,y:y*30}])));
+  const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
   const occupied=new Set(),key=(x,y)=>`${x},${y}`;
   const objects=layout.placed.map(p=>{const o=position.get(p.plot);return {...p,gx:o.x+p.x,gy:o.y+p.y}});
   for(const p of objects)for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)occupied.add(key(p.gx+x,p.gy+y));
   const modes={Scorching:'Heat Furnace',Warm:'Heat Furnace',Freeze:'Cooling Unit',Cool:'Cooling Unit',Adequate:'Sunlamp'};
   const nodes=[],remaining=[],used={};
-  const inRange=(node,target)=>node.x+9>target.gx&&node.x-9<target.gx+target.w&&node.y+9>target.gy&&node.y-9<target.gy+target.h;
+  const inRange=(node,target)=>node.x+18>target.gx&&node.x-18<target.gx+target.w&&node.y+18>target.gy&&node.y-18<target.gy+target.h;
   const crop=p=>p.name==='Farmland'||p.name==='Woodland'||!!p.environment;
   for(const mode of Object.keys(modes)){
     const targets=objects.filter(p=>p.environment===mode), type=modes[mode];
     const def=definitions.find(d=>d.name===type);const level=Number(rv)||0;
     const cap=def&&level>=Number(def.unlocks['1'])?(def.counts[Math.min(level-1,def.counts.length-1)]||0):0;
     while(targets.some(t=>!nodes.some(n=>n.mode===mode&&inRange(n,t))) && (used[type]||0)<cap){
-      const size=type==='Cooling Unit'?4:2;let best=null;
+      const size=type==='Cooling Unit'?8:4;let best=null;
       for(let plot=1;plot<=layout.plots;plot++){const o=position.get(plot);
-        for(let y=0;y<=30-size;y++)for(let x=0;x<=40-size;x++){
+        for(let y=0;y<=PLOT_HEIGHT-size;y+=2)for(let x=0;x<=PLOT_WIDTH-size;x+=2){
           let free=true;for(let yy=0;yy<size&&free;yy++)for(let xx=0;xx<size;xx++)if(occupied.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}
           if(!free)continue;
           const candidate={plot,x,y,w:size,h:size,name:type,recipe:mode,mode,level:1,electric:false,infrastructure:true,xg:o.x+x+size/2,yg:o.y+y+size/2};
@@ -78,9 +79,9 @@ export function placeClimate(layout, rv, definitions) {
   return {placed:nodes.map(n=>({...n,x:n.localX,y:n.localY})),uncovered:remaining.map(t=>({name:t.name,recipe:t.recipe,environment:t.environment})),complete:remaining.length===0};
 }
 
-// Greedy, conservative half-tile grid. Coverage is not a proof of in-game placement.
+// Greedy, conservative quarter-tile footprint grid with half-tile candidate positions. Coverage is not a proof of in-game placement.
 export function placePower(layout, generatorCount, poleCap) {
-  const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*40,y:y*30}])));
+  const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
   const occupied=new Set();
   const key=(x,y)=>`${x},${y}`;
   for(const p of layout.placed){const origin=position.get(p.plot);for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)occupied.add(key(origin.x+p.x+x,origin.y+p.y+y));}
@@ -91,7 +92,7 @@ export function placePower(layout, generatorCount, poleCap) {
   function choose(size,radius,mustConnect){
     const remaining=uncovered();let best=null;
     for(let plot=1;plot<=layout.plots;plot++){const o=position.get(plot);
-      for(let y=0;y<=30-size;y+=1)for(let x=0;x<=40-size;x+=1){
+      for(let y=0;y<=PLOT_HEIGHT-size;y+=2)for(let x=0;x<=PLOT_WIDTH-size;x+=2){
         let free=true;for(let yy=0;yy<size&&free;yy++)for(let xx=0;xx<size;xx++)if(occupied.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}
         if(!free)continue;
         const node={x:o.x+x+size/2,y:o.y+y+size/2,radius};
@@ -105,8 +106,8 @@ export function placePower(layout, generatorCount, poleCap) {
     if(best){const o=position.get(best.plot);for(let y=0;y<size;y++)for(let x=0;x<size;x++)occupied.add(key(o.x+best.x+x,o.y+best.y+y));nodes.push(best)}
     return best;
   }
-  for(let i=0;i<generatorCount;i++){const p=choose(2,11,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
+  for(let i=0;i<generatorCount;i++){const p=choose(4,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
   let poles=0;
-  while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){const p=choose(3,7,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++}
+  while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++}
   return {placed:nodes,generatorsPlaced,poles,uncovered:uncovered().length,complete:generatorsPlaced===generatorCount && uncovered().length===0};
 }

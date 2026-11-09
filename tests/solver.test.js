@@ -91,7 +91,7 @@ test('layout follows image plot order and keeps rectangles inside purchased plot
  const result=layoutPlan([{recipe:{facility:'Woodland',group:0,worker:{electric:false},id:'cocoa'},units:19,shared:false}],1);
  assert.ok(result.placed.length>0);
  assert.equal(result.placed.length+result.unplaced.length,19);
- for(const x of result.placed) assert.ok(x.plot===1&&x.x+x.w<=40&&x.y+x.h<=30);
+ for(const x of result.placed) assert.ok(x.plot===1&&x.x+x.w<=80&&x.y+x.h<=60);
 });
 test('power layout places a connected generator for a nearby electric facility',()=>{
  const layout=layoutPlan([{recipe:{facility:'Woodworking Bench',group:0,worker:{electric:true},id:'rough_lumber'},units:1,shared:false}],1);
@@ -101,7 +101,7 @@ test('power layout places a connected generator for a nearby electric facility',
  assert.equal(grid.complete,true);
 });
 test('power layout reports a missing generator when no plots are free',()=>{
- const layout={plots:1,placed:[{plot:1,x:0,y:0,w:40,h:30,electric:true}]};
+ const layout={plots:1,placed:[{plot:1,x:0,y:0,w:80,h:60,electric:true}]};
  const grid=placePower(layout,1,6);
  assert.equal(grid.generatorsPlaced,0);
  assert.equal(grid.complete,false);
@@ -147,4 +147,8 @@ test('event budget does not place spare fields',async()=>{
  const result=await optimize([pumpkin],s);
  assert.equal(result.rows[0].units,1);
  assert.equal(layoutPlan(result.rows,1).placed.length,1);
+});
+test('layout preserves quarter-tile facility dimensions',()=>{
+ const plan=layoutPlan([{recipe:{facility:'Blazing Stove',group:0,worker:{electric:false,level:1},id:'food'},units:1,shared:false}],1);
+ assert.deepEqual([plan.placed[0].w,plan.placed[0].h],[10,7]);
 });
