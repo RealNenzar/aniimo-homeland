@@ -3,6 +3,7 @@ import { facilityGroups } from './facilities.js';
 import {workers} from './worker-abilities.js';
 import { ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, facilityWatts } from './power.js';
 
+export const RV_ANIIMO_LIMITS=[0,8,11,14,17,20,22,24,26,28,30,32,34,36,38,40,42,43,44,45,46,47];
 const gathering = new Set(['Mine','Well','Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill','Aniipod Maker']);
 const shared = new Set();
 const base = (id, ids) => id.startsWith('quick_') && ids.has(id.slice(6)) ? id.slice(6) : id;
@@ -57,6 +58,15 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const lines = [], integer = [], electrical=[];
   const objectives = {coins:[],event:[],rv:[[1,'progress']],wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
   daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
+  const fieldAbilities=new Map();
+  recipes.forEach((r,i)=>{
+    if(!r.seconds||!['Farmland','Woodland'].includes(r.facility))return;
+    const steps=(state.growerSteps||[]).filter(x=>x.name===r.id&&x.facility===r.facility);
+    const needed=new Set(steps.map(x=>x.ability));needed.add('Water');
+    for(const ability of needed){if(!fieldAbilities.has(ability)){const v=`field${fieldAbilities.size}`;fieldAbilities.set(ability,v);integer.push(v)}
+      lines.push(`fieldLink${lines.length}: ${expr([[1,`n${i}`],[-r.worker.count,fieldAbilities.get(ability)]])} <= 0`);
+    }
+  });
   const hours = state.hours;
   recipes.forEach((r,i)=>{
     const f = r.worker, x=`x${i}`, n=`n${i}`, rate=3600/speed(r,f);
@@ -88,7 +98,23 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
     if(terms.length)lines.push(`crew${lines.length}: ${expr(terms)} <= ${Math.max(0,Math.floor(Number(count)||0))}`);
   }
-  if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0;lines.push(`power: ${expr(electrical)} <= ${max*(Number(p.watts)||0)/1.2}`)}
+  if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0;integer.push('generatorCount');lines.push(`power: ${expr([...electrical,[-(Number(p.watts)||0)/1.2,'generatorCount']])} <= 0`);lines.push(`generatorLimit: generatorCount <= ${max}`);objectives.workers.push([-.001,'generatorCount']);}
+  for(const [ability,v] of fieldAbilities){
+    const levels=state.workerCounts?.[ability];if(!levels||!Object.values(levels).some(x=>x!==''&&x!==null&&x!==undefined))continue;
+    const count=Object.values(levels).reduce((n,x)=>n+Math.max(0,Math.floor(Number(x)||0)),0);
+    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
+    lines.push(`fieldCrew${lines.length}: ${expr([[1,v],...terms])} <= ${count}`);
+  }
+  const hauling=state.workerCounts?.Hauling;
+  if(hauling&&Object.values(hauling).some(x=>x!==''&&x!==null&&x!==undefined)&&Object.values(hauling).every(x=>(Number(x)||0)<=0)){
+    const terms=recipes.map((_,i)=>[1,`n${i}`]);if(terms.length)lines.push(`noHauling: ${expr(terms)} <= 0`);
+  }
+  const rv=Number(state.currentRv)||0;
+  if(rv>=2&&rv<=RV_ANIIMO_LIMITS.length){
+    const terms=recipes.flatMap((r,i)=>r.seconds||r.worker.electric?[]:[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]);
+    if(electrical.length)terms.push([1,'generatorCount']);for(const v of fieldAbilities.values())terms.push([1,v]);
+    if(terms.length)lines.push(`homelandCrew: ${expr(terms)} <= ${RV_ANIIMO_LIMITS[rv-1]-1}`);
+  }
   for(const [i,item] of itemIds.entries()) {
     const terms=[];
     recipes.forEach((r,j)=>{
@@ -116,7 +142,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(.99,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
-  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
+  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
   return {lp,recipes,sales,objectives,electrical,daily};
 }
 

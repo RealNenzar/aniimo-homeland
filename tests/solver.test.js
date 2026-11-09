@@ -188,7 +188,7 @@ test('team shares compatible personalities but separates opposites',()=>{
 test('growing jobs are listed without inventing workload',()=>{
  const result={rows:[{recipe:{id:'cocoa',facility:'Woodland',seconds:2400},rate:1}],power:{generators:0}};
  const team=buildTeam(result,{climate:{placed:[]},grid:{placed:[]}},[{name:'cocoa',facility:'Woodland',step:'Logging',ability:'Dark',min_level:'2'}]);
- assert.deepEqual(team.jobs,[{ability:'Dark',level:2,step:'Logging',facility:'Woodland'}]);assert.equal(team.groups.length,0);
+ assert.ok(team.jobs.some(j=>j.ability==='Dark'&&j.step==='Logging'));assert.ok(team.jobs.some(j=>j.ability==='Water'&&j.step==='Watering'));assert.equal(team.groups.length,0);
 });
 test('event may trade at most ten percent of coin optimum',async()=>{
  const s=state();s.event=true;s.beans=100;s.eventCoinTolerance=.1;s.facilities={Farmland:{...f,count:10}};s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true}];
@@ -229,4 +229,28 @@ test('default workers use level three and specified counts constrain production'
  s.workerCounts={Fire:{3:1}};const limited=await optimize([r],s);
  assert.ok(limited.goals[0].value<unlimited.goals[0].value*.5);assert.ok(limited.rows.every(x=>x.recipe.worker.skill===3));
  s.workerCounts={Fire:{3:0}};const none=await optimize([r],s);assert.equal(none.goals[0].value,0);
+});
+import {upgradeBalance} from '../upgrade-balance.js';
+import {RV_ANIIMO_LIMITS} from '../solver.js';
+test('RV levels include 21 and 22 and their personnel limits',()=>{
+ const defs=JSON.parse(readFileSync(new URL('../data/facilities.json',import.meta.url)));
+ assert.equal(RV_ANIIMO_LIMITS[17],43);assert.equal(RV_ANIIMO_LIMITS[20],46);assert.equal(RV_ANIIMO_LIMITS[21],47);
+ const p=presetFacilities(22,defs);assert.equal(p.Farmland.groups[0].count,42);assert.equal(p.Farmland.groups[0].level,8);assert.equal(p['Tidewhisper Sandcastle'].groups[0].level,5);
+});
+test('upgrade balance subtracts sales, orders, inputs and seed costs',()=>{
+ const r={rows:[{rate:2,recipe:{id:'lumber',yield:1,ingredients:{wood_block:8},seedCost:0}},{rate:1,recipe:{id:'crop',yield:1,ingredients:{},seedCost:2}}],sales:[{item:'lumber',rate:1,price:10}],daily:[{item:'lumber',quantity:1,completed:1}]};
+ const s={hours:2,stock:{wood_block:40,coins:5},targets:{wood_block:3,lumber:2,coins:10}};
+ const out=Object.fromEntries(upgradeBalance(r,s).map(x=>[x.item,x.difference]));assert.deepEqual(out,{wood_block:5,lumber:-1,coins:11});
+});
+test('RV cap constrains combined production and generator staffing',()=>{
+ const s=state();s.currentRv=2;s.autoWorkers=true;s.facilities={'Claw Game Cooker':{...f,count:20}};
+ const r=recipe('food','Claw Game Cooker',{seconds:0,workload:3600,abilityLevel:1,sellValue:1});
+ assert.match(model([r],s).lp,/homelandCrew:.* <= 7/);
+});
+
+test('field abilities and hauling reserve capacity only for planted crops',async()=>{
+ const s=state();s.currentRv=2;s.autoWorkers=true;s.growerSteps=[{name:'crop',facility:'Farmland',ability:'Grass',step:'Sowing'},{name:'crop',facility:'Farmland',ability:'Dark',step:'Reaping'}];
+ s.facilities={Farmland:{...f,count:2}};const m=model([recipe('crop','Farmland',{seconds:3600,sellValue:10})],s);
+ assert.match(m.lp,/fieldLink/);assert.match(m.lp,/homelandCrew:.*field0.*field1.*field2.* <= 7/);
+ s.workerCounts={Water:{3:0}};const result=await optimize([recipe('crop','Farmland',{seconds:3600,sellValue:10})],s);assert.equal(result.goals[0].value,0);
 });

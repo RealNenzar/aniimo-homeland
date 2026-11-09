@@ -190,7 +190,7 @@ export function packClimate(layout, rv, definitions) {
 }
 
 // Storage limits reported by Aniimo Camp for RV levels 1–20.
-export const STORAGE_LIMITS=[0,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,8];
+export const STORAGE_LIMITS=[0,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,8,8,8];
 export function placeStorage(layout, limit){
  const pos=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
  const used=new Set(),key=(x,y)=>`${x},${y}`;

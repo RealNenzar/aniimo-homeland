@@ -1,6 +1,6 @@
 // Data-only RV assumptions from Aniimax; the source marks higher levels as partly unverified.
 export function presetFacilities(level, definitions, previous = {}) {
-  const rv = Math.max(1, Math.min(20, Number(level) || 1));
+  const rv = Math.max(1, Math.min(22, Number(level) || 1));
   return Object.fromEntries(definitions.map(def => {
     const unlocked = Object.entries(def.unlocks).filter(([, required]) => required <= rv).map(([tier]) => Number(tier));
     const tier = Math.max(1, ...unlocked);
