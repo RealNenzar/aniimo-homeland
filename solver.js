@@ -94,7 +94,14 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const coinNeed=Number(state.targets.coins)||0;
   if(coinNeed) lines.push(`rvcoins: ${expr([...objectives.coins,[-coinNeed/hours,'progress']])} >= ${-(state.stock.coins||0)/hours}`);
   if(objectives.beans?.length) lines.push(`beans: ${expr(objectives.beans)} <= ${state.beans/hours}`);
-  for (let i=0;i<fixed.length;i++) lines.push(`priority${i}: ${expr(objectives[fixed[i].key])} >= ${fixed[i].value-1e-7*Math.max(1,Math.abs(fixed[i].value))}`);
+  const order=(state.priorities||[]).filter(p=>p.enabled).map(p=>p.id);
+  const coinIndex=order.indexOf('coins'), eventIndex=order.indexOf('event');
+  for (let i=0;i<fixed.length;i++) {
+    const item=fixed[i];
+    const allowEventTrade=item.key==='coins' && state.event && coinIndex>=0 && eventIndex>coinIndex && Number(state.eventCoinTolerance)>0;
+    const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(.99,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
+    lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
+  }
   const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...(integer.length?['General',...integer]:[]),'End'].join('\n');
   return {lp,recipes,sales,objectives,electrical};
 }
@@ -120,5 +127,5 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   if(state.autoWorkers){const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const generators=draw?Math.ceil(draw*1.2/state.power.watts):0;
-  return {goals:fixed,power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }

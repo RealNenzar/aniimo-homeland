@@ -53,3 +53,5 @@ input,select,.quiet{background:#fff;color:#111}
 .team-dot img{display:block;width:100%;height:100%;object-fit:contain}
 .team-level{position:absolute;right:-4px;bottom:-4px;display:flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 2px;border-radius:50%;background:#111;color:#fff;border:1px solid #fff;font-size:10px;line-height:1}
 .roster-ability{display:flex;align-items:center;gap:5px;min-width:0}.roster-ability img{width:28px;height:28px;object-fit:contain}.roster-ability select{min-width:0}
+
+.layout-scroll{cursor:grab;touch-action:none}.layout-scroll.dragging{cursor:grabbing;user-select:none}.layout-scroll.dragging *{cursor:grabbing!important}

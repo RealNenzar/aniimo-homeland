@@ -190,3 +190,8 @@ test('growing jobs are listed without inventing workload',()=>{
  const team=buildTeam(result,{climate:{placed:[]},grid:{placed:[]}},[{name:'cocoa',facility:'Woodland',step:'Logging',ability:'Dark',min_level:'2'}]);
  assert.deepEqual(team.jobs,[{ability:'Dark',level:2,step:'Logging',facility:'Woodland'}]);assert.equal(team.groups.length,0);
 });
+test('event may trade at most ten percent of coin optimum',async()=>{
+ const s=state();s.event=true;s.beans=100;s.eventCoinTolerance=.1;s.facilities={Farmland:{...f,count:10}};s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true}];
+ const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,eventPoints:1,seedCost:4}),recipe('wheat','Farmland',{seconds:3600,sellValue:100})];
+ const result=await optimize(recipes,s);assert.ok(result.goals[0].value>=900-1e-4);assert.ok(result.goals[1].value>0);assert.ok(result.rows.some(r=>r.recipe.id==='pumpkin'));
+});

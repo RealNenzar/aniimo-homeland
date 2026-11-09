@@ -109,6 +109,15 @@ export function placePower(layout, generatorCount, poleCap) {
   for(let i=0;i<generatorCount;i++){const p=choose(4,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
   let poles=0;
   while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++}
+  // Remove poles that do not contribute to coverage or to the connected network.
+  if(!uncovered().length){
+    const connected=list=>{
+      const seen=new Set(list.filter(n=>n.name==='Crackle Generator'));let changed=true;
+      while(changed){changed=false;for(const n of list)if(!seen.has(n)&&[...seen].some(o=>Math.abs(n.x-o.x)<n.radius+o.radius&&Math.abs(n.y-o.y)<n.radius+o.radius)){seen.add(n);changed=true}}
+      return seen.size===list.length&&targets.every(t=>list.some(n=>touches(n,t)));
+    };
+    for(let i=nodes.length-1;i>=0;i--)if(nodes[i].name==='Crackle Power Pole'&&connected(nodes.filter((_,j)=>j!==i))){nodes.splice(i,1);poles--}
+  }
   return {placed:nodes.map(n=>({...n,x:n.localX,y:n.localY})),generatorsPlaced,poles,uncovered:uncovered().length,complete:generatorsPlaced===generatorCount && uncovered().length===0};
 }
 
