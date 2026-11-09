@@ -39,6 +39,10 @@ test('nineteen cocoa plots produce the expected wood block rate',async()=>{
  const result=await optimize([cocoa],s);
  assert.ok(Math.abs(result.goals[0].value-3477)<.001);
 });
+test('four seven-second benches can process a 2318 block harvest in about 8.45 minutes',()=>{
+ const minutes=2318*7/(4*8*60);
+ assert.ok(Math.abs(minutes-8.45)<0.01);
+});
 test('higher event priority is kept when optimizing coins',async()=>{
  const s=state();s.event=true;s.beans=4;s.priorities=[{id:'event',enabled:true},{id:'coins',enabled:true}];
  const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,yield:8,eventPoints:1,seedCost:4}),recipe('wheat','Farmland',{seconds:3600,sellValue:100})];
