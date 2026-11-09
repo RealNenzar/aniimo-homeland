@@ -286,3 +286,24 @@ test('forecast marks extrapolation beyond the modeled period',()=>{
  const s={hours:10,stock:{wood_block:0},targets:{wood_block:20}};const f=upgradeForecast(r,s);
  assert.equal(f.hours,20);assert.equal(f.extrapolated,true);
 });
+test('independent fastest RV pace accounts for stock without the selected time horizon',async()=>{
+ const s=state();s.stock={crop:30};s.targets={crop:150};s.hours=24;s.priorities=[{id:'rv',enabled:true}];s.facilities={Farmland:f};
+ const crop=recipe('crop','Farmland',{seconds:60,sellCurrency:'none'});
+ const a=await optimize([crop],s);assert.ok(Math.abs(a.fastestUpgrade.hours-2)<.001);
+ s.hours=10;const b=await optimize([crop],s);assert.ok(Math.abs(b.fastestUpgrade.hours-2)<.001);
+});
+test('fastest RV does not pretend one-off event orders are completed',async()=>{
+ const s=state();s.event=true;s.beans=4;s.daily=[{item:'pumpkin',count:1,quantity:1,priority:true}];s.targets={wheat:1};s.priorities=[{id:'rv',enabled:true},{id:'daily',enabled:true}];
+ const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,seedCost:4}),recipe('wheat','Farmland',{seconds:3600})];
+ const result=await optimize(recipes,s);assert.ok(Math.abs(result.fastestUpgrade.hours-1)<.001);
+});
+test('forecast refuses to extrapolate after finite intermediate stock runs out',()=>{
+ const s={hours:10,stock:{wood_block:80},targets:{lumber:30}};
+ const r={rows:[{rate:1,recipe:{id:'lumber',yield:1,ingredients:{wood_block:8}}}],sales:[],daily:[]};
+ assert.deepEqual(upgradeForecast(r,s),{reachable:false,reason:'finite'});
+});
+test('forecast refuses to repeat a finite order over an extended period',()=>{
+ const s={hours:10,stock:{},targets:{lumber:30}};
+ const r={rows:[{rate:1,recipe:{id:'lumber',yield:1,ingredients:{}}}],sales:[],daily:[{item:'lumber',quantity:1,completed:1}]};
+ assert.deepEqual(upgradeForecast(r,s),{reachable:false,reason:'finite'});
+});

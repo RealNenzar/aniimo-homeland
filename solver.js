@@ -56,7 +56,8 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const itemIds = [...items].sort(); const itemIndex = Object.fromEntries(itemIds.map((v,i)=>[v,i]));
   const sales = itemIds.map((item,i)=>({item,var:`s${i}`,price:recipes.find(r=>r.output===item && r.sellCurrency==='coins')?.sellValue||0}));
   const lines = [], integer = [], electrical=[];
-  const objectives = {coins:[],event:[],rv:[[1,'progress']],wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
+  const paceMode=!!state.paceMode;
+  const objectives = {coins:[],event:[],rv:[[1,paceMode?'pace':'progress']],wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
   daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
   const fieldAbilities=new Map();
   recipes.forEach((r,i)=>{
@@ -131,15 +132,17 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     });
     daily.forEach((d,j)=>{if(d.item===item)terms.push([-Number(d.quantity)/hours,`d${j}`])});
     const sale=sales[i]; if(sale.price) terms.push([-1,sale.var]);
-    const rvNeed=Number(state.targets[item])||0; if(rvNeed) terms.push([-rvNeed/hours,'progress']);
-    lines.push(`balance${i}: ${expr(terms)} >= ${-(state.stock[item]||0)/hours}`);
+    const rvNeed=Number(state.targets[item])||0;
+    if(paceMode){const delta=(Number(state.stock[item])||0)-rvNeed;if(delta)terms.push([delta,'pace']);lines.push(`balance${i}: ${expr(terms)} >= 0`)}
+    else{if(rvNeed)terms.push([-rvNeed/hours,'progress']);lines.push(`balance${i}: ${expr(terms)} >= ${-(state.stock[item]||0)/hours}`)}
     if(item==='wood_block') objectives.wood=terms.filter(([,n])=>n.startsWith('x'));
     if(item==='mineral_sand') objectives.sand=terms.filter(([,n])=>n.startsWith('x'));
   }
   sales.forEach(s=>{if(s.price) objectives.coins.push([s.price,s.var]);});
   const coinNeed=Number(state.targets.coins)||0;
-  if(coinNeed) lines.push(`rvcoins: ${expr([...objectives.coins,[-coinNeed/hours,'progress']])} >= ${-(state.stock.coins||0)/hours}`);
-  if(objectives.beans?.length) lines.push(`beans: ${expr(objectives.beans)} <= ${state.beans/hours}`);
+  if(paceMode){const delta=(Number(state.stock.coins)||0)-coinNeed;if(coinNeed||delta)lines.push(`rvcoins: ${expr([...objectives.coins,[delta,'pace']])} >= 0`)}
+  else if(coinNeed) lines.push(`rvcoins: ${expr([...objectives.coins,[-coinNeed/hours,'progress']])} >= ${-(state.stock.coins||0)/hours}`);
+  if(objectives.beans?.length)lines.push(paceMode?`beans: ${expr([...objectives.beans,[-(Number(state.beans)||0),'pace']])} <= 0`:`beans: ${expr(objectives.beans)} <= ${state.beans/hours}`);
   const order=(state.priorities||[]).filter(p=>p.enabled).map(p=>p.id);
   const coinIndex=order.indexOf('coins'), eventIndex=order.indexOf('event');
   for (let i=0;i<fixed.length;i++) {
@@ -148,7 +151,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(1,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
-  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
+  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',...(paceMode?[' 0 <= pace <= 3600']:[]),' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
   return {lp,recipes,sales,objectives,electrical,daily};
 }
 
@@ -162,7 +165,17 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   if(goals.includes('daily')&&!(state.daily||[]).some(d=>Number(d.count)>0&&Number(d.quantity)>0)) throw Error('Bitte mindestens einen Eventauftrag eintragen.');
   if(!goals.length) throw Error('Bitte mindestens eine Priorität aktivieren.');
   if(goals.includes('rv') && !Object.values(state.targets).some(n=>n>0)) throw Error('Für RV-Level-up mindestens ein Zielmaterial eintragen.');
-  let result,problem;
+  let result,problem,fastestUpgrade=null;
+  if(goals[0]==='rv'){
+    const missing=Object.entries(state.targets||{}).some(([item,need])=>Number(need)>(Number(state.stock?.[item])||0));
+    if(!missing)fastestUpgrade={hours:0,status:'Optimal'};
+    else{
+      onProgress('rv');const paceState={...state,paceMode:true,daily:[],priorities:[{id:'rv',enabled:true}]};
+      const paceProblem=model(catalog,paceState,[],'rv');const solved=highs.solve(paceProblem.lp,{time_limit:30,mip_rel_gap:.001});
+      const pace=solved.Columns?.pace?.Primal||0;
+      fastestUpgrade=pace>1e-9?{hours:1/pace,status:solved.Status||'Unknown'}:{hours:null,status:solved.Status||'Unknown'};
+    }
+  }
   for(const key of goals){
     onProgress(key); problem=model(catalog,state,fixed,key);
     result=highs.solve(problem.lp,{time_limit:30,mip_rel_gap:0.001});
@@ -175,5 +188,5 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
   const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
-  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {fastestUpgrade,goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }

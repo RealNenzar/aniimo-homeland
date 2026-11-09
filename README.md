@@ -49,4 +49,4 @@ python -m http.server 8080
 
 Anschließend `http://localhost:8080/` öffnen. `file://` wird nicht unterstützt.
 
-Die geschätzte RV-Fertigstellungszeit verwendet durchschnittliche Raten; Startverzögerungen, tägliche Reset-Zeiten und vollständige Chargen sind nicht simuliert. Geplante tägliche Jelly-Bean-Belohnungen werden im Modell vorab verfügbar angenommen.
+Steht das RV-Ziel an erster Stelle, optimiert ein separater Vergleich die RV-Rate mittels Vorrats- und Kostenbilanz; Eventaufträge und nachrangige Ziele sind dabei nicht enthalten, und das Eventbudget wird sofort verfügbar angenommen. Dies ist nicht notwendigerweise der darunter angezeigte Produktionsplan. Die geschätzte RV-Fertigstellungszeit des angezeigten Plans verwendet durchschnittliche Raten; Startverzögerungen, tägliche Reset-Zeiten und vollständige Chargen sind nicht simuliert. Geplante tägliche Jelly-Bean-Belohnungen werden im Modell vorab verfügbar angenommen.
