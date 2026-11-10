@@ -174,15 +174,15 @@ test('power devices use coordinates local to their actual plot',()=>{
 });
 import {buildTeam} from '../staffing.js';
 
-test('team shares compatible personalities but separates opposites',()=>{
- const task=(facility)=>({recipe:{facility,id:'dish',worker:{skill:4,bonus:true},workload:3600,abilityLevel:1},units:1,rate:1.2});
+test('team assigns a separate Aniimo to every manually operated facility',()=>{
+ const task=(facility)=>({recipe:{facility,id:'dish',worker:{skill:4,bonus:true},workload:3600,abilityLevel:1},units:1,rate:0.1});
  const result={rows:[task('Claw Game Cooker'),task('Simmering Pot'),task('Blazing Stove')],power:{generators:1}};
  const team=buildTeam(result,{climate:{placed:[{name:'Heat Furnace',mode:'Warm'}]},grid:{placed:[]}},[]);
+ const production=team.groups.filter(g=>g.ability==='Fire'&&g.level===4);
+ assert.equal(production.reduce((n,g)=>n+g.count,0),3);
+ assert.ok(production.every(g=>g.where.length===1&&g.personalities.length===1));
  assert.equal(team.groups.filter(g=>g.ability==='Fire'&&g.level===null).length,1);
  assert.equal(team.groups.filter(g=>g.ability==='Lightning'&&g.level===null).length,1);
- const production=team.groups.filter(g=>g.ability==='Fire'&&g.level===4);
- assert.ok(production.some(g=>g.personalities.includes('Practical')&&g.personalities.includes('Tenacious')));
- assert.ok(production.every(g=>!(g.personalities.includes('Practical')&&g.personalities.includes('Nimble'))));
 });
 
 test('growing jobs are listed without inventing workload',()=>{
@@ -450,4 +450,21 @@ test('dense layout finds a connected, collision-free grid without moving climate
  while(changed){changed=false;for(const node of nodes)if(!reached.has(node)&&[...reached].some(other=>powerReachesNode(other,node))){reached.add(node);changed=true}}
  assert.equal(reached.size,nodes.length);
  for(const facility of layout.placed.filter(p=>p.electric)){const x=rect(facility);assert.ok(nodes.some(n=>n.x+n.radius>x.x&&n.x-n.radius<x.x+x.w&&n.y+n.radius>x.y&&n.y-n.radius<x.y+x.h));}
+});
+
+test('two partially used dark facilities require two separate dark Aniimo',async()=>{
+ const s=state();s.autoWorkers=true;s.facilities={'Jukebox Dryer':{...f},'Pickling Jar':{...f},'Crafting Table':{...f}};
+ const recipes=[recipe('fruit','Jukebox Dryer',{seconds:0,workload:60,abilityLevel:3}),recipe('pickle','Pickling Jar',{seconds:0,workload:60,abilityLevel:3}),recipe('product','Crafting Table',{seconds:0,workload:60,abilityLevel:3,ingredients:{fruit:1,pickle:1},sellValue:100})];
+ s.workerCounts={Dark:{3:1}};assert.equal((await optimize(recipes,s)).goals[0].value,0);
+ s.workerCounts={Dark:{3:2}};const result=await optimize(recipes,s);assert.ok(result.goals[0].value>0);assert.equal(result.rows.filter(r=>['Jukebox Dryer','Pickling Jar'].includes(r.recipe.facility)).length,2);
+});
+test('electric facilities do not consume a facility worker',async()=>{
+ const s=state();s.autoWorkers=true;s.currentRv=12;s.facilities={'Jukebox Dryer':{...f}};s.workerCounts={Dark:{3:0}};s.power={enabled:true,module:1,level:1,watts:600,efficiencyPercent:120};
+ const r=recipe('dry','Jukebox Dryer',{seconds:0,workload:60,abilityLevel:3,sellValue:10});const result=await optimize([r],s);assert.ok(result.goals[0].value>0);assert.ok(result.rows.every(row=>row.recipe.worker.electric));
+});
+
+test('RV limit counts full assigned staff rather than fractional workload',async()=>{
+ const s=state();s.currentRv=2;s.autoWorkers=true;s.facilities={'Claw Game Cooker':{...f,count:20}};
+ const r=recipe('dish','Claw Game Cooker',{seconds:0,workload:3600,abilityLevel:3,sellValue:1});
+ const result=await optimize([r],s);assert.ok(result.rows.reduce((n,row)=>n+row.units,0)<=7);
 });

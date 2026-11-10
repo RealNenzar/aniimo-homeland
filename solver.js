@@ -7,6 +7,7 @@ import { ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, facilityWatts } from '
 export const RV_ANIIMO_LIMITS=[0,8,11,14,17,20,22,24,26,28,30,32,34,36,38,40,42,43,44,45,46,47];
 const gathering = new Set(['Mine','Well','Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill','Aniipod Maker','Dance Pad Polisher']);
 const shared = new Set();
+const isField = r => r.seconds > 0 && ['Farmland','Woodland'].includes(r.facility);
 const base = (id, ids) => id.startsWith('quick_') && ids.has(id.slice(6)) ? id.slice(6) : id;
 const term = (coef, name) => `${coef < 0 ? '-' : '+'} ${Math.abs(coef).toPrecision(12)} ${name}`;
 const expr = (terms) => terms.filter(([c]) => Math.abs(c) > 1e-12).map(([c,n]) => term(c,n)).join(' ') || '0 anchor';
@@ -31,7 +32,7 @@ export function prepare(catalog, state) {
     const ability=workers[r.facility]?.[0];
     const entries=ability && state.workerCounts?.[ability];
     const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
-    const levels=state.autoWorkers && !r.seconds && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1];
+    const levels=state.autoWorkers && !isField(r) && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1];
     const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:!!configured}:f}));
     if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100)),ability,limited:false}});
     return modes;
@@ -82,7 +83,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     if (!shared.has(r.facility)) {
       lines.push(`capacity${i}: ${expr([[1,x],[-rate,n]])} <= 0`); integer.push(n);
       if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([-.0001,n]);}
-      else if(!r.seconds) objectives.workers.push([-1,n]);
+      else if(!isField(r)) objectives.workers.push([-1,n]);
       else objectives.workers.push([-.0001,n]);
     }
     if(r.event) objectives.event.push([(r.eventPoints*r.yield + (r.seconds && r.seedCost ? 2 : 0)),x]);
@@ -101,7 +102,6 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
       if(vars.length) lines.push(`facility${lines.length}: ${expr(vars)} <= ${f.count}`);
     });
   }
-  const resident=new Set(['Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill']);
   // Each occupied leisure facility needs one member of its recipe's family.
   for(const [family,count] of Object.entries(state.familyCounts||{})) {
     if(count===''||count===null||count===undefined)continue;
@@ -110,7 +110,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   }
   for(const [ability,levels] of Object.entries(state.workerCounts||{}))for(let level=1;level<=4;level++){
     const count=levels[level];if(count===''||count===null||count===undefined)continue;
-    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
+    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[1,`n${i}`]]:[]);
     if(terms.length)lines.push(`crew${lines.length}: ${expr(terms)} <= ${Math.max(0,Math.floor(Number(count)||0))}`);
   }
   if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0,efficiency=Math.max(.01,Math.min(1.2,Number(p.efficiencyPercent??120)/100));integer.push('generatorCount');lines.push(`power: ${expr([...electrical,[-(Number(p.watts)||0)/efficiency,'generatorCount']])} <= 0`);lines.push(`generatorLimit: generatorCount <= ${max}`);objectives.workers.push([-.001,'generatorCount']);}
@@ -118,7 +118,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   for(const ability of combinedAbilities){
     const levels=state.workerCounts?.[ability];if(!levels||!Object.values(levels).some(x=>x!==''&&x!==null&&x!==undefined))continue;
     const count=Object.values(levels).reduce((n,x)=>n+Math.max(0,Math.floor(Number(x)||0)),0);
-    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);
+    const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability?[[1,`n${i}`]]:[]);
     if(fieldAbilities.has(ability))terms.push([1,fieldAbilities.get(ability)]);
     for(const m of climateModes.values())if(m.ability===ability)terms.push([m.count,m.variable]);
     if(ability==='Lightning'&&electrical.length)terms.push([1,'generatorCount']);
@@ -130,7 +130,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   }
   const rv=Number(state.currentRv)||0;
   if(rv>=2&&rv<=RV_ANIIMO_LIMITS.length){
-    const terms=recipes.flatMap((r,i)=>r.seconds||r.worker.electric?[]:[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]);
+    const terms=recipes.flatMap((r,i)=>isField(r)||r.worker.electric?[]:[[1,`n${i}`]]);
     if(electrical.length)terms.push([1,'generatorCount']);for(const v of fieldAbilities.values())terms.push([1,v]);for(const m of climateModes.values())terms.push([m.count,m.variable]);
     if(terms.length)lines.push(`homelandCrew: ${expr(terms)} <= ${RV_ANIIMO_LIMITS[rv-1]-1}`);
   }

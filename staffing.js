@@ -2,26 +2,16 @@ import {speed} from './solver.js';
 import {workers} from './worker-abilities.js';
 import {recipeFamily} from './families.js';
 
-const resident=new Set(['Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill']);
-const opposites={Instinctive:'Energetic',Energetic:'Instinctive',Nimble:'Practical',Practical:'Nimble',Faithful:'Tenacious',Tenacious:'Faithful',Playful:'Judicious',Judicious:'Playful'};
-
-// Estimate average staffed production time; not a simulation of random breaks.
+// Each manually operated facility has its own assigned Aniimo.
+// Occupancy is an average only; breaks and travel are not simulated.
 export function buildTeam(result,layout,growerSteps){
- const tasks=[];
- for(const row of result.rows){
-  const r=row.recipe,info=workers[r.facility];if(r.seconds||r.worker.electric||!info)continue;
-  const [ability,personality]=info;const load=row.rate*speed(r,r.worker)/3600;
-  const job={ability,level:r.worker.skill||1,personality,where:r.facility,recipe:r.id,family:recipeFamily(r)};
-  if(resident.has(r.facility)){for(let i=0;i<Math.ceil(row.units-1e-7);i++)tasks.push({...job,load:1,resident:true});}
-  else if(load>1e-7)tasks.push({...job,load});
- }
  const people=[];
- // Split fractional workload across people with compatible personality pairs.
- for(const task of tasks.sort((a,b)=>b.load-a.load)){let remaining=task.load;
-  while(remaining>1e-7){let person=!task.resident&&people.find(p=>!p.resident&&p.ability===task.ability&&p.level>=task.level&&p.load<1-1e-7&&(!task.personality||!p.personalities.has(opposites[task.personality])));
-   if(!person){person={ability:task.ability,level:task.level,load:0,personalities:new Set(),where:new Set(),resident:!!task.resident,family:task.family||null};people.push(person)}
-   const portion=Math.min(remaining,1-person.load);person.load+=portion;remaining-=portion;if(task.personality)person.personalities.add(task.personality);person.where.add(task.where+'|'+task.recipe);
-  }
+ for(const row of result.rows){
+  const r=row.recipe,info=workers[r.facility];
+  if((r.seconds&&['Farmland','Woodland'].includes(r.facility))||r.worker.electric||!info)continue;
+  const [ability,personality]=info,count=Math.ceil(row.units-1e-7);
+  const load=Math.max(0,row.rate*speed(r,r.worker)/3600);
+  for(let i=0;i<count;i++)people.push({ability,level:r.worker.skill||1,load:Math.min(1,Math.max(0,load-i)),personalities:new Set(personality?[personality]:[]),where:new Set([r.facility+'|'+r.id]),resident:true,family:recipeFamily(r)});
  }
  for(const p of layout.climate.placed){const ability=({'Heat Furnace':'Fire','Cooling Unit':'Ice','Sunlamp':'Light'})[p.name];if(ability)people.push({ability,level:null,load:1,personalities:new Set(),where:new Set([p.name+'|'+p.mode]),resident:true})}
  for(let i=0;i<(result.power?.generators||0);i++)people.push({ability:'Lightning',level:null,load:1,personalities:new Set(),where:new Set(['Crackle Generator|']),resident:true});
