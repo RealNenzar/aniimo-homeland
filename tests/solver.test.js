@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {speed,model,optimize} from '../solver.js';
+import {speed,model,optimize,prepare} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
 import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID} from '../layout.js';
@@ -320,4 +320,15 @@ test('climate retry defers staffing tie-break without changing priorities',async
  const s=state();s.autoWorkers=true;s.facilities={Farmland:{...f,count:1}};const phases=[];let checked=false;
  const result=await optimize([recipe('wheat','Farmland',{seconds:3600,sellValue:10})],s,p=>phases.push(p),{deferTieBreak:rows=>{checked=rows.length>0;return true}});
  assert.equal(checked,true);assert.ok(!phases.includes('workers'));assert.equal(result.goals[0].value,10);
+});
+
+test('RV 21 and 22 recipes respect facility, module and recipe-note unlocks',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
+ const s=state();s.facilities={Farmland:{...f,level:8},Well:{...f,level:6},'Blazing Stove':{...f,level:6},'Crafting Table':{...f,level:9}};
+ s.special=['orange_flower_rice_drink'];
+ const ids=()=>new Set(prepare(catalog,s).map(r=>r.id));
+ assert.ok(ids().has('sorghum'));assert.ok(!ids().has('quick_agave'));assert.ok(!ids().has('quick_snowmelt_cold_spring'));assert.ok(!ids().has('orange_flower_rice_drink'));assert.ok(!ids().has('premium_quicksilver_springstone'));
+ s.modules={ecological_module:9,resource_detector:10,crafting_module:8};s.notes=['orange_flower_rice_drink'];
+ for(const id of ['quick_agave','quick_snowmelt_cold_spring','orange_flower_rice_drink','premium_quicksilver_springstone'])assert.ok(ids().has(id),id);
+ s.facilities.Farmland.level=7;assert.ok(!ids().has('sorghum'));
 });

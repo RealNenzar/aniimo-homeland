@@ -1,4 +1,4 @@
-import { optimize } from './solver.js?v=0.2.6';
+import { optimize } from './solver.js?v=0.2.7';
 import {layoutPlan,packClimate} from './layout.js';
 self.onmessage=async e=>{
   try{
