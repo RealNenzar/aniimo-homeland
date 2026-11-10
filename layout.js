@@ -102,7 +102,7 @@ export function placePower(layout, generatorCount, poleCap) {
     if(best){const o=position.get(best.plot);for(let y=0;y<size;y++)for(let x=0;x<size;x++)occupied.add(key(o.x+best.localX+x,o.y+best.localY+y));nodes.push(best)}
     return best;
   }
-  for(let i=0;i<generatorCount;i++){const p=choose(4,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
+  for(let i=0;i<generatorCount;i++){const p=choose(8,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
   // Move uncovered electric facilities into unused powered space when possible.
   // Climate-dependent facilities stay in place so their growing conditions cannot change.
   function moveUncovered(){

@@ -409,3 +409,10 @@ test('quick pearl and quick scales are available only with their detector unlock
  s.modules.resource_detector=9;ids=new Set(prepare(catalog,s).map(r=>r.id));assert.ok(ids.has('quick_pearl'));assert.ok(ids.has('quick_scales'));assert.ok(!ids.has('pearl'));assert.ok(!ids.has('scales'));
  const pearl=catalog.find(r=>r.id==='quick_pearl');assert.deepEqual([pearl.yield,pearl.workload,pearl.abilityLevel,pearl.environment],[4,2700,3,'Warm']);assert.equal(recipeFamily(pearl),'Shelly');
 });
+
+test('generator requires a two by two tile footprint',()=>{
+ const layout={plots:1,unplaced:[],placed:[{name:'Well',plot:1,x:30,y:30,w:8,h:8,electric:true}]};
+ const grid=placePower(layout,1,10);const generator=grid.placed.find(p=>p.name==='Crackle Generator');
+ assert.ok(generator);assert.equal(generator.w,8);assert.equal(generator.h,8);
+ const well=layout.placed[0];assert.ok(generator.x+generator.w<=well.x||well.x+well.w<=generator.x||generator.y+generator.h<=well.y||well.y+well.h<=generator.y);
+});
