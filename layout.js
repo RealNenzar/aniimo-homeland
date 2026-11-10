@@ -3,6 +3,19 @@ export const GRID_SCALE=4, PLOT_WIDTH=80, PLOT_HEIGHT=60;
 export const PLOT_GRID = [[13,14,15,16],[12,7,8,9],[11,4,3,6],[10,2,1,5]];
 export const FOOTPRINTS = {'Farmland':[2,2],'Woodland':[4,4],'Mine':[5,5],'Well':[2,2],'Tidewhisper Sandcastle':[5,5],'Dewy House':[2,2],'Nimbus Bed':[5,5],'Starfall Hammock':[5,5],'Floral Windmill':[5,5],'Carousel Mill':[5.5,5.5],'Crafting Table':[4,4],'Claw Game Cooker':[3.5,3.5],'Simmering Pot':[1.5,1.5],'Phonolfactory Table':[3.5,3.5],'Bouncy Brew Keg':[3,3],'Blazing Stove':[2.5,1.75],'Pickling Jar':[2.5,2],'Jukebox Dryer':[2.5,2.5],'Joy Wheel Loom':[4,4],'Woodworking Bench':[2,1.5],'Chimney Kiln':[5.5,5.5],'Dance Pad Polisher':[2.5,2.5],'Aniipod Maker':[4.5,4.5],'Storage Unit':[2,2]};
 
+// Measured in game: a Well below a Mine can require one quarter tile of clearance.
+// Keep the verified footprints; reserve space only for this vertical pairing.
+export function mineWellClearance(a,b) {
+  const mine=a.name==='Mine'?a:b.name==='Mine'?b:null;
+  const well=a.name==='Well'?a:b.name==='Well'?b:null;
+  if(!mine||!well)return true;
+  const horizontallyOverlaps=mine.x<well.x+well.w && mine.x+mine.w>well.x;
+  const wellBelow=well.y>=mine.y+mine.h;
+  return !(horizontallyOverlaps && wellBelow && well.y<mine.y+mine.h+1);
+}
+const plotOrigins = new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
+function globalRect(p) {const origin=plotOrigins.get(p.plot);return {...p,x:origin.x+p.x,y:origin.y+p.y};}
+
 export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   const count=Math.max(1,Math.min(16,Number(boughtPlots)||1));
   const plots=Array.from({length:count},()=>Array.from({length:PLOT_HEIGHT},()=>new Uint8Array(PLOT_WIDTH)));
@@ -24,6 +37,7 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
     for(let y=6;y<=PLOT_HEIGHT-h&&!found;y++)for(let x=6;x<=PLOT_WIDTH-w&&!found;x++){
       let free=true;for(let yy=y;yy<y+h&&free;yy++)for(let xx=x;xx<x+w;xx++)if(plots[pi][yy][xx]){free=false;break}
       if(!free)continue;
+      if((item.name==='Mine'||item.name==='Well') && placed.some(p=>!mineWellClearance(globalRect({...item,plot:pi+1,x,y,w,h}),globalRect(p))))continue;
       for(let yy=y;yy<y+h;yy++)plots[pi][yy].fill(1,x,x+w);
       placed.push({...item,plot:pi+1,x,y,w,h});if(climateSensitive)climateByPlot[pi]=mode;found=true;
     }}
@@ -113,6 +127,8 @@ export function placePower(layout, generatorCount, poleCap) {
     for(let plot=1;plot<=layout.plots&&!spot;plot++){const o=position.get(plot);
       for(let y=0;y<=PLOT_HEIGHT-target.h&&!spot;y+=2)for(let x=0;x<=PLOT_WIDTH-target.w&&!spot;x+=2){
         const candidate={gx:o.x+x,gy:o.y+y,w:target.w,h:target.h};if(!nodes.some(n=>touches(n,candidate)))continue;
+        const candidateRect={name:target.name,x:candidate.gx,y:candidate.gy,w:target.w,h:target.h};
+        if((target.name==='Mine'||target.name==='Well') && layout.placed.some(p=>p!==target.source&&!mineWellClearance(candidateRect,globalRect(p))))continue;
         let free=true;for(let yy=0;yy<target.h&&free;yy++)for(let xx=0;xx<target.w;xx++)if(occupied.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}
         if(free)spot={plot,x,y,gx:o.x+x,gy:o.y+y};
       }

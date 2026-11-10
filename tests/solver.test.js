@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {speed,model,optimize,prepare} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
-import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID,powerReachesNode} from '../layout.js';
+import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID,powerReachesNode,mineWellClearance} from '../layout.js';
 import {translate} from '../i18n.js';
 import {allowedStock,STOCK_ITEMS} from '../inventory.js';
 import {facilityImage} from '../images.js';
@@ -415,4 +415,21 @@ test('generator requires a two by two tile footprint',()=>{
  const grid=placePower(layout,1,10);const generator=grid.placed.find(p=>p.name==='Crackle Generator');
  assert.ok(generator);assert.equal(generator.w,8);assert.equal(generator.h,8);
  const well=layout.placed[0];assert.ok(generator.x+generator.w<=well.x||well.x+well.w<=generator.x||generator.y+generator.h<=well.y||well.y+well.h<=generator.y);
+});
+
+test('well below mine has a quarter tile clearance without blocking side adjacency',()=>{
+ const mine={name:'Mine',x:0,y:0,w:20,h:20};
+ assert.equal(mineWellClearance(mine,{name:'Well',x:4,y:20,w:8,h:8}),false);
+ assert.equal(mineWellClearance(mine,{name:'Well',x:4,y:21,w:8,h:8}),true);
+ assert.equal(mineWellClearance(mine,{name:'Well',x:20,y:0,w:8,h:8}),true);
+ assert.equal(mineWellClearance(mine,{name:'Well',x:4,y:-8,w:8,h:8}),true);
+});
+test('power layout preserves the measured mine to well clearance',()=>{
+ const layout={plots:1,unplaced:[],placed:[{name:'Mine',plot:1,x:0,y:0,w:20,h:20,electric:true},{name:'Well',plot:1,x:40,y:40,w:8,h:8,electric:true}]};
+ const grid=placePower(layout,1,10);assert.equal(grid.complete,true);assert.ok(mineWellClearance(...layout.placed));
+});
+
+test('generated placements retain clearance between mines and wells',()=>{
+ const rows=[{recipe:{facility:'Mine',id:'gem',worker:{electric:true,level:6}},units:5,rate:1},{recipe:{facility:'Well',id:'fresh_water',worker:{electric:true,level:2}},units:5,rate:1}];
+ const layout=layoutPlan(rows,1);for(const mine of layout.placed.filter(p=>p.name==='Mine'))for(const well of layout.placed.filter(p=>p.name==='Well'))assert.ok(mineWellClearance(mine,well));
 });
