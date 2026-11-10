@@ -62,3 +62,32 @@ input,select,.quiet{background:#fff;color:#111}
 
 /* E-mode marker remains visible on both light and dark maps. */
 .layout-object .electric-badge{position:absolute;z-index:1;top:1px;right:1px;display:grid;place-items:center;min-width:12px;height:12px;padding:0 1px;border:1px solid #593c00;border-radius:3px;background:#ffdf47;color:#392a00;font-size:10px;line-height:1;pointer-events:none}
+/* Compact planner controls and accessible contextual help. */
+:root{--surface:#fff;--surface-muted:#f6f7f9;--line:#d9dce1;--ink:#16181c;--muted:#555b65;--accent:#3b5e9c;--help-bg:#fff;--help-ink:#16181c}
+[data-theme="dark"]{--surface:#232427;--surface-muted:#2c2e32;--line:#555960;--ink:#f5f5f5;--muted:#d1d3d6;--accent:#9dbfff;--help-bg:#303238;--help-ink:#fff}
+header{height:68px;padding-inline:max(3vw,20px)}
+.brand{gap:9px;letter-spacing:.08em}.brand .mark{font-size:23px}.brand small{margin-top:2px}
+main{max-width:1380px;padding:24px 28px 36px}.tabs{gap:4px;margin-bottom:20px}.tabs button{padding:11px 15px}
+.heading{margin:22px 0 16px}.heading h2{font-size:22px}.card{padding:20px;margin-bottom:12px;border-color:var(--line);box-shadow:none}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.card-title h2,.card-title h3{margin:0;min-width:0}.heading .card-title{justify-content:flex-start;margin-bottom:0}
+input,select{border-color:var(--line);border-radius:7px;padding:8px;color:var(--ink)}.quiet,.primary{border-radius:7px}.priority{padding:10px 4px;gap:10px}.priority button{min-width:34px;min-height:34px}.priority input{width:17px;height:17px}
+.help{position:relative;display:inline-flex;flex:none;vertical-align:middle;z-index:5}
+.help-trigger{display:grid;place-items:center;width:22px;height:22px;padding:0;border:1px solid #969ca6;border-radius:50%;background:var(--surface);color:var(--ink);font:700 12px/1 sans-serif;cursor:pointer}
+.help-trigger:hover,.help-trigger[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.help-trigger:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.help-content{position:absolute;top:calc(100% + 6px);right:0;width:max-content;max-width:min(325px,calc(100vw - 36px));padding:12px 14px;border:1px solid var(--line);border-radius:9px;background:var(--help-bg);color:var(--help-ink);box-shadow:0 8px 24px #0003;font-size:12px;font-weight:400;line-height:1.5;text-align:left;visibility:hidden;opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:100}
+.help:hover .help-content,.help-trigger:focus-visible+.help-content,.help-trigger[aria-expanded="true"]+.help-content{visibility:visible;opacity:1;pointer-events:auto}
+.help-paragraph{display:block}.help-paragraph+.help-paragraph{margin-top:8px}.field-with-help{display:flex;align-items:center;gap:9px}.field-with-help>label{flex:1;min-width:0}.field-with-help>label select{min-width:0;max-width:65%}
+.card:has(.help:hover),.card:has(.help-trigger[aria-expanded="true"]),.card:has(.help-trigger:focus-visible){position:relative;z-index:8}
+[data-theme="dark"] header,[data-theme="dark"] .card{background:var(--surface);border-color:var(--line)}[data-theme="dark"] .help-trigger{background:var(--surface);color:var(--ink);border-color:#a4aab2}[data-theme="dark"] .help-content{background:var(--help-bg);color:var(--help-ink);border-color:#737982}
+@media(max-width:720px){header{height:62px;padding-inline:12px}.brand{font-size:12px}.brand small{font-size:8px}.header-actions{gap:5px}.header-actions select{max-width:94px;font-size:11px}.header-actions button{padding:8px}.tabs button{padding:10px 12px}main{padding:18px 14px}.heading h2{font-size:20px}.card{padding:16px}.card-title{margin-bottom:10px}.help-content{max-width:min(300px,calc(100vw - 42px))}}
+@media(prefers-reduced-motion:reduce){.help-content{transition:none}}
+/* Page headings sit on the left, so their help panels open toward the content. */
+.heading .help-content{left:0;right:auto}
+.aniimo-example{display:inline-flex;align-items:center;gap:8px;min-width:0;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.35}
+.aniimo-portrait{display:block;width:38px;height:38px;flex:none;object-fit:contain;border:1px solid var(--line);border-radius:9px;background:var(--surface-muted)}
+.personality-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid var(--line);border-radius:999px;background:var(--surface-muted);color:var(--ink);font-size:11px;line-height:1.2}
+@media(max-width:720px){.help-content,.heading .help-content{position:fixed;top:auto;bottom:14px;left:14px;right:14px;width:auto;max-width:none;max-height:45vh;overflow:auto}}
+/* Keep all four work areas visible on phones without a horizontal scrollbar. */
+@media(max-width:720px){.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;overflow:visible}.tabs button{min-width:0;padding:9px 3px;font-size:10px;white-space:normal;text-align:center}.tabs button span{display:block;margin:3px 0 0;overflow-wrap:anywhere}}
+@media(max-width:720px){.grid{grid-template-columns:minmax(0,1fr)}.grid>.card{min-width:0}label{overflow-wrap:anywhere}.header-actions{flex:none}}

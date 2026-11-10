@@ -14,6 +14,8 @@ Das verschiebbare Ziel „RV-Vorrat“ addiert die Materialkosten aller Upgrades
 
 Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whimsy Points als eigenes Ziel behandelt. Vier bereits erhaltene Wonder-Daily-Belohnungen lassen sich einmalig zu je 200 Jelly Beans ergänzen, falls sie noch nicht im Vorrat enthalten sind. Shop-Rezepte müssen freigeschaltet werden. Einzelne Rezepte können bei fehlender Freischaltung deaktiviert werden. Die RV-Kosten 2–20 stammen aus Aniimax und lassen sich überschreiben.
 
+Nur aktivierte Ziele werden in ihrer eingestellten Reihenfolge optimiert. Bei älteren Importen werden fehlende optionale Ziele ausgeschaltet ergänzt. Pflanzen können mit zwei Bewässerungen (75 % der Grundzeit) oder ohne Bewässerung berechnet werden; dafür wird gegebenenfalls eine Wasserfähigkeit vorausgesetzt.
+
 Optional wählt der Solver E-Mode selbst. Für die Stromrechnung gelten die eingestellte Versorgung (bis 120 %) und ein gemeinsames Netz; die nötige Generatorzahl folgt aus der verwendeten Leistung. Der Planer nimmt passende Persönlichkeiten an. Ohne Eingaben verwendet er Arbeitsstufe 3; eingetragene Mengen pro Fähigkeit und Stufe begrenzen die Anzahl belegter Produktionsgebäude. Jedes manuell betriebene Gebäude benötigt ein eigenes Aniimo. Feldarbeiten, Transport, Klimageräte und Generatoren sind in diesen Personalgrenzen nicht vollständig erfasst.
 
 Bei dichtem Aufbau kann die Stromplatzierung einzelne Gebäude ohne Klimaanforderung verschieben, um Platz für verbundene Poles zu schaffen. Das Netz wird danach erneut auf Versorgung geprüft. Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte Produktionsgebäude heuristisch auf gekaufte Flächen. Lager werden bis zur RV-Grenze verteilt; ihre Positionen minimieren näherungsweise gewichtete Luftlinien zu Produktionsstätten. Klimageräte, Generatoren und Poles werden näherungsweise ergänzt. Lagergrenzen: [Aniimo Camp](https://aniimocamp.com/). Jede platzierte Holzbank und jeder Ofen zeigt genau ein Rezept. Die angegebene Pole-Anzahl ist ein Vorschlag, kein nachgewiesenes globales Minimum. Das Aniimo-Limit umfasst im Modell ein Aniimo je manuell betriebenem Produktionsgebäude, Generatoren sowie mindestens je ein Aniimo für Transport und jede genutzte Feldfähigkeit. Klimapersonal wird je Gerät reserviert; der Planer gleicht die benötigte Zahl iterativ mit der Platzierung ab. Bei nicht abgeschlossener Abstimmung wird gewarnt. Gebäudebilder werden von [Aniimo Wiki / GameVault](https://aniimo.gamevault.in/en/homeland/furniture/) geladen; die Spielgrafiken gehören ihren Rechteinhabern.
@@ -38,7 +40,7 @@ Referenzen: [Arbeitsmechanik](https://aniimotools.dev/systems/homeland/aniimo-at
 
 Strombedarf, E-Mode und Generatorwerte: [MOANIIMO E-Mode Guide](https://aniimo.kr/en/systems/camper-home-electric-mode-guide); Plot-Reihenfolge und Reichweiten wurden mit [Aniiland Floor Layout](https://aniiland.wintira.win/homeland/floor-layout/) abgeglichen.
 
-Die Fähigkeitssymbole in `assets/abilities` stammen von [AniimoTools](https://aniimotools.dev/systems/homeland/aniimo-at-work/); Spielgrafiken gehören ihren jeweiligen Rechteinhabern.
+Die Fähigkeitssymbole in `assets/abilities` stammen von [AniimoTools](https://aniimotools.dev/systems/homeland/aniimo-at-work/). Aniimo-Beispiele und deren Porträts stammen von [AniimoGuide](https://aniimoguide.com/homeland/workers); sie beschreiben keine tatsächlich besessenen Aniimo. Spielgrafiken gehören ihren jeweiligen Rechteinhabern.
 
 Der Optimierer nutzt [HiGHS](https://highs.dev/) über WebAssembly; dessen MIT-Lizenz liegt unter `vendor/highs/LICENSE`.
 
@@ -53,4 +55,4 @@ python -m http.server 8080
 
 Anschließend `http://localhost:8080/` öffnen. `file://` wird nicht unterstützt. GitHub Pages veröffentlicht erst nach erfolgreicher Katalogprüfung und bestandenen Python- und JavaScript-Tests; die Browserprüfung erfolgt separat.
 
-Steht das RV-Ziel an erster Stelle, optimiert ein separater Vergleich die RV-Rate mittels Vorrats- und Kostenbilanz; Eventaufträge und nachrangige Ziele sind dabei nicht enthalten, und das Eventbudget wird sofort verfügbar angenommen. Dies ist nicht notwendigerweise der darunter angezeigte Produktionsplan. Die geschätzte RV-Fertigstellungszeit des angezeigten Plans verwendet durchschnittliche Raten; Startverzögerungen, tägliche Reset-Zeiten und vollständige Chargen sind nicht simuliert. Geplante tägliche Jelly-Bean-Belohnungen werden im Modell vorab verfügbar angenommen.
+Die geschätzte RV-Fertigstellungszeit des angezeigten Plans verwendet durchschnittliche Raten; Startverzögerungen, tägliche Reset-Zeiten und vollständige Chargen sind nicht simuliert. Geplante tägliche Jelly-Bean-Belohnungen werden im Modell vorab verfügbar angenommen.

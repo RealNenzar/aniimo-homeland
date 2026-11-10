@@ -249,7 +249,7 @@ test('RV cap constrains combined production and generator staffing',()=>{
 });
 
 test('field abilities and hauling reserve capacity only for planted crops',async()=>{
- const s=state();s.currentRv=2;s.autoWorkers=true;s.growerSteps=[{name:'crop',facility:'Farmland',ability:'Grass',step:'Sowing'},{name:'crop',facility:'Farmland',ability:'Dark',step:'Reaping'}];
+ const s=state();s.wateringMode='full';s.currentRv=2;s.autoWorkers=true;s.growerSteps=[{name:'crop',facility:'Farmland',ability:'Grass',step:'Sowing'},{name:'crop',facility:'Farmland',ability:'Dark',step:'Reaping'}];
  s.facilities={Farmland:{...f,count:2}};const m=model([recipe('crop','Farmland',{seconds:3600,sellValue:10})],s);
  assert.match(m.lp,/fieldLink/);assert.match(m.lp,/homelandCrew:.*field0.*field1.*field2.* <= 7/);
  s.workerCounts={Water:{3:0}};const result=await optimize([recipe('crop','Farmland',{seconds:3600,sellValue:10})],s);assert.equal(result.goals[0].value,0);
@@ -286,16 +286,13 @@ test('forecast marks extrapolation beyond the modeled period',()=>{
  const s={hours:10,stock:{wood_block:0},targets:{wood_block:20}};const f=upgradeForecast(r,s);
  assert.equal(f.hours,20);assert.equal(f.extrapolated,true);
 });
-test('independent fastest RV pace accounts for stock without the selected time horizon',async()=>{
- const s=state();s.stock={crop:30};s.targets={crop:150};s.hours=24;s.priorities=[{id:'rv',enabled:true}];s.facilities={Farmland:f};
- const crop=recipe('crop','Farmland',{seconds:60,sellCurrency:'none'});
- const a=await optimize([crop],s);assert.ok(Math.abs(a.fastestUpgrade.hours-2)<.001);
- s.hours=10;const b=await optimize([crop],s);assert.ok(Math.abs(b.fastestUpgrade.hours-2)<.001);
-});
-test('fastest RV does not pretend one-off event orders are completed',async()=>{
- const s=state();s.event=true;s.beans=4;s.daily=[{item:'pumpkin',count:1,quantity:1,priority:true}];s.targets={wheat:1};s.priorities=[{id:'rv',enabled:true},{id:'daily',enabled:true}];
- const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,seedCost:4}),recipe('wheat','Farmland',{seconds:3600})];
- const result=await optimize(recipes,s);assert.ok(Math.abs(result.fastestUpgrade.hours-1)<.001);
+test('RV optimization only solves the selected priorities and returns the displayed plan',async()=>{
+ const s=state();s.event=true;s.beans=4;s.facilities={Farmland:{...f,count:2}};s.daily=[{item:'pumpkin',count:1,quantity:1,priority:true}];s.targets={wheat:1};s.priorities=[{id:'rv',enabled:true},{id:'daily',enabled:true}];
+ const recipes=[recipe('pumpkin','Farmland',{event:'magical_wonder_night',seconds:3600,seedCost:4}),recipe('wheat','Farmland',{seconds:3600})],steps=[];
+ const result=await optimize(recipes,s,step=>steps.push(step));
+ assert.deepEqual(steps,['rv','daily_priority']);
+ assert.equal(result.daily[0].completed,1);assert.ok(result.rows.some(r=>r.recipe.id==='wheat'));
+ assert.ok(!('fastestUpgrade' in result));
 });
 test('forecast refuses to extrapolate after finite intermediate stock runs out',()=>{
  const s={hours:10,stock:{wood_block:80},targets:{lumber:30}};
