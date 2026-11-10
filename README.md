@@ -8,7 +8,7 @@ RV-Level wählen: Der Planer übernimmt die maximal verfügbaren Gebäude und de
 
 ## Berechnung
 
-HiGHS löst ein gemischt-ganzzahliges Modell: Rohstoffe, Zwischenprodukte und Bestände werden bilanziert; die Kapazität der Gebäude ist begrenzt. Jedes Gebäude ist einem Rezept zugeordnet, einschließlich Woodworking Bench und Chimney Kiln. Ziele werden in Reihenfolge optimiert und vorher erreichte Werte erhalten. RV-Level-up maximiert den erreichbaren Anteil der Kosten im Zeitraum; es berechnet nicht die exakte Dauer.
+HiGHS löst ein gemischt-ganzzahliges Modell: Rohstoffe, Zwischenprodukte und Bestände werden bilanziert; die Kapazität der Gebäude ist begrenzt. Jedes Gebäude ist einem Rezept zugeordnet, einschließlich Woodworking Bench und Chimney Kiln. Verfügbare schnelle Varianten werden bevorzugt; wenn sie gesperrt oder deaktiviert sind, bleibt das normale Rezept verfügbar. Bei Arbeitsstufe 1 kann normale Wolle mehr Ertrag pro Stunde liefern als Quick Wool. Ziele werden in Reihenfolge optimiert und vorher erreichte Werte erhalten. RV-Level-up maximiert den erreichbaren Anteil der Kosten im Zeitraum; es berechnet nicht die exakte Dauer.
 
 Bei Magical Wonder Night werden Jelly Beans als begrenztes Saatgutbudget und Whimsy Points als eigenes Ziel behandelt. Vier bereits erhaltene Wonder-Daily-Belohnungen lassen sich einmalig zu je 200 Jelly Beans ergänzen, falls sie noch nicht im Vorrat enthalten sind. Shop-Rezepte müssen freigeschaltet werden. Einzelne Rezepte können bei fehlender Freischaltung deaktiviert werden. Die RV-Kosten 2–20 stammen aus Aniimax und lassen sich überschreiben.
 

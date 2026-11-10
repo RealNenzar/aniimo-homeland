@@ -1,5 +1,5 @@
-import { optimize } from './solver.js?v=0.2.11';
-import {layoutPlan,packClimate} from './layout.js?v=0.2.11';
+import { optimize } from './solver.js?v=0.2.12';
+import {layoutPlan,packClimate} from './layout.js?v=0.2.12';
 self.onmessage=async e=>{
   try{
     const state={...e.data.state,climateReserve:{}};let result,verified=false;

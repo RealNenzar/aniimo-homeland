@@ -371,3 +371,33 @@ test('unpowered facilities are moved into existing coverage before placing poles
  assert.equal(grid.complete,true);assert.equal(grid.uncovered,0);assert.equal(grid.poles,0);
  assert.ok(layout.placed[1].x<68 || layout.placed[1].y<48);
 });
+
+test('quick wool earns more per hour at default level and both gathering rates match the work table',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
+ const wool=catalog.find(r=>r.id==='wool'),quick=catalog.find(r=>r.id==='quick_wool');
+ const worker={skill:3,bonus:true};
+ assert.ok(Math.abs(wool.yield*3600/speed(wool,worker)-13.44)<1e-9);
+ assert.ok(Math.abs(quick.yield*3600/speed(quick,worker)-14.4)<1e-9);
+});
+test('gathering speed uses correct work table across all skill and recommended levels',()=>{
+ const expected=[[60,90,120,150],[45,75,105,135],[30,60,90,120]];
+ for(let need=1;need<=3;need++)for(let skill=1;skill<=4;skill++){
+  const r=recipe('work','Mine',{seconds:0,workload:3600,abilityLevel:need});
+  assert.equal(speed(r,{skill,bonus:false}),3600/(expected[need-1][skill-1]/60));
+ }
+});
+test('optimizer selects quick wool when it produces more with a level-3 worker',async()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url))).filter(r=>['wool','quick_wool'].includes(r.id));
+ const s=state();s.autoWorkers=true;s.facilities={'Nimbus Bed':{...f,level:2}};s.modules={resource_detector:5};
+ const result=await optimize(catalog,s);assert.deepEqual(result.rows.map(row=>row.recipe.id),['quick_wool']);
+});
+
+test('unlocked quick recipes take precedence and fall back when disabled or locked',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url))).filter(r=>['wool','quick_wool'].includes(r.id));
+ const s=state();s.autoWorkers=true;s.facilities={'Nimbus Bed':{...f,level:2}};
+ s.modules={resource_detector:5};assert.deepEqual(prepare(catalog,s).map(r=>r.id),['quick_wool']);
+ s.modules.resource_detector=4;assert.deepEqual(prepare(catalog,s).map(r=>r.id),['wool']);
+ s.modules.resource_detector=5;s.disabled=['quick_wool'];assert.deepEqual(prepare(catalog,s).map(r=>r.id),['wool']);
+ s.disabled=[];s.facilities['Nimbus Bed']={groups:[{...f,level:1},{...f,level:2}]};
+ assert.deepEqual(prepare(catalog,s).map(r=>[r.id,r.group]).sort(),[['quick_wool',1],['wool',0]].sort());
+});

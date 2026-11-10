@@ -5,7 +5,7 @@ import {recipeFamily} from './families.js';
 import { ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, facilityWatts } from './power.js';
 
 export const RV_ANIIMO_LIMITS=[0,8,11,14,17,20,22,24,26,28,30,32,34,36,38,40,42,43,44,45,46,47];
-const gathering = new Set(['Mine','Well','Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill','Aniipod Maker']);
+const gathering = new Set(['Mine','Well','Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill','Aniipod Maker','Dance Pad Polisher']);
 const shared = new Set();
 const base = (id, ids) => id.startsWith('quick_') && ids.has(id.slice(6)) ? id.slice(6) : id;
 const term = (coef, name) => `${coef < 0 ? '-' : '+'} ${Math.abs(coef).toPrecision(12)} ${name}`;
@@ -20,14 +20,14 @@ export function speed(r, f) {
   const level = Math.max(1, Math.min(4, Number(f.skill) || 1));
   const need = Math.max(1, Math.min(3, r.abilityLevel || 1));
   let rate;
-  if (gathering.has(r.facility)) rate = Math.max(.1, (60 + (level - need) * 30 - (need - 1) * 15) / 60);
+  if (gathering.has(r.facility)) rate = Math.max(.1, (60 + (level - 1) * 30 - (need - 1) * 15) / 60);
   else { const d = level - need; rate = d < 0 ? Math.max(.25, 1 + d * .25) : d === 0 ? 1 : d + 2; }
   return r.workload / (rate * (f.bonus ? 1.2 : 1));
 }
 
 export function prepare(catalog, state) {
   const ids = new Set(catalog.map(r => r.id));
-  return catalog.flatMap(r => facilityGroups(state.facilities[r.facility]).flatMap((f,group) => {
+  const available = catalog.flatMap(r => facilityGroups(state.facilities[r.facility]).flatMap((f,group) => {
     const ability=workers[r.facility]?.[0];
     const entries=ability && state.workerCounts?.[ability];
     const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
@@ -44,6 +44,11 @@ export function prepare(catalog, state) {
     if (state.special.includes(r.id) && !state.notes.includes(r.id)) return false;
     return speed(r, f) > 0;
   }).map(r => ({...r, output:base(r.id,ids)}));
+  // Prefer an available quick variant only for the same building group and worker mode.
+  // The normal recipe remains available when the quick variant is locked or disabled.
+  const quickModes = new Set(available.filter(r=>r.id.startsWith('quick_') && r.output!==r.id)
+    .map(r=>JSON.stringify([r.facility,r.group,r.output,r.worker.skill,!!r.worker.electric])));
+  return available.filter(r=>r.id.startsWith('quick_') || !quickModes.has(JSON.stringify([r.facility,r.group,r.output,r.worker.skill,!!r.worker.electric])));
 }
 
 export function model(catalog, state, fixed = [], objective = 'coins') {
