@@ -508,3 +508,9 @@ test('second Claw Game Cooker is used when its output raises the active goal',as
  const r=recipe('food','Claw Game Cooker',{seconds:0,workload:60,abilityLevel:3,sellValue:10});
  const result=await optimize([r],s);assert.equal(result.rows.length,1);assert.equal(result.rows[0].units,2);
 });
+
+test('coin recovery uses spare capacity after the reserve target is satisfied',async()=>{
+ const s=state();s.hours=1;s.autoWorkers=true;s.facilities={Farmland:{...f,count:20}};s.priorities=[{id:'coins',enabled:true},{id:'reserve',enabled:true}];s.reserveTargets={wood_block:1};s.reserveCoinTolerance=.1;
+ const recipes=[recipe('crop','Farmland',{seconds:3600,sellValue:100}),recipe('wood_block','Farmland',{seconds:3600,sellCurrency:'none'})];
+ const result=await optimize(recipes,s),coins=result.goals.find(g=>g.key==='coins');assert.ok(coins.maximum>1999);assert.ok(coins.value>1899.9);assert.ok(result.goals.find(g=>g.key==='reserve').value>.999);
+});

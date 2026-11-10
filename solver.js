@@ -158,6 +158,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     if(item==='mineral_sand') objectives.sand=terms.filter(([,n])=>n.startsWith('x'));
   }
   sales.forEach(s=>{if(s.price) objectives.coins.push([s.price,s.var]);});
+  objectives.coin_recovery=objectives.coins;
   const coinNeed=Number(state.targets.coins)||0;
   if(paceMode){const delta=(Number(state.stock.coins)||0)-coinNeed;if(coinNeed||delta)lines.push(`rvcoins: ${expr([...objectives.coins,[delta,'pace']])} >= 0`)}
   else if(coinNeed) lines.push(`rvcoins: ${expr([...objectives.coins,[-coinNeed/hours,'progress']])} >= ${-(state.stock.coins||0)/hours}`);
@@ -168,10 +169,10 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const item=fixed[i];
     const allowEventTrade=item.key==='coins' && state.event && coinIndex>=0 && eventIndex>coinIndex;
     const reserveIndex=order.indexOf('reserve');
-    const currentIndex=objective==='workers'?order.length:order.indexOf(objective==='daily_priority'?'daily':objective);
+    const currentIndex=['workers','coin_recovery'].includes(objective)?order.length:order.indexOf(objective==='daily_priority'?'daily':objective);
     const allowReserveTrade=item.key==='coins' && coinIndex>=0 && reserveIndex>coinIndex && reserveIndex<=currentIndex && reserveVars.length>0;
     const tolerance=Math.max(allowEventTrade?Number(state.eventCoinTolerance)||0:0,allowReserveTrade?Number(state.reserveCoinTolerance??.1)||0:0);
-    const floor=item.value>0 ? item.value*(1-Math.min(1,Math.max(0,tolerance))) : item.value;
+    const floor=item.value>0 && !item.strict ? item.value*(1-Math.min(1,Math.max(0,tolerance))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
   const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',...reserveVars.map(r=>` 0 <= ${r.variable} <= 1`),...(paceMode?[' 0 <= pace <= 3600']:[]),' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
@@ -210,9 +211,21 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
     const value=(problem.objectives[key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0);
     fixed.push({key,value,status:result.Status});
   }
-  // Among plans with the same prioritized result, prefer fewer staffed stations.
+  // After lower priorities use their allowance, recover any coins still possible
+  // without reducing those priorities. Only then minimize staffing.
   const deferTieBreak=options.deferTieBreak?.(solutionRows(problem,result))===true;
-  if(state.autoWorkers&&!deferTieBreak){onProgress('workers');const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
+  let tieFixed=fixed;
+  const coinGoal=fixed.find(g=>g.key==='coins');
+  const actualCoins=coinGoal?(problem.objectives.coins||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0):0;
+  if(!deferTieBreak&&coinGoal&&actualCoins<coinGoal.value-1e-5){
+    onProgress('coins');const recovery=model(catalog,state,fixed,'coin_recovery'),solved=highs.solve(recovery.lp,{time_limit:30,mip_rel_gap:.001});
+    if(solved.Columns&&solved.Status==='Optimal'){
+      const recovered=recovery.objectives.coins.reduce((n,[c,v])=>n+c*(solved.Columns[v]?.Primal||0),0);
+      if(recovered+1e-5>=actualCoins){problem=recovery;result=solved;tieFixed=[...fixed,{key:'coins',value:recovered,strict:true}];}
+    }
+  }
+  // Among plans with the same prioritized result, prefer fewer staffed stations.
+  if(state.autoWorkers&&!deferTieBreak){onProgress('workers');const alternative=model(catalog,state,tieFixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
   const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
