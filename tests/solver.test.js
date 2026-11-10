@@ -401,3 +401,11 @@ test('unlocked quick recipes take precedence and fall back when disabled or lock
  s.disabled=[];s.facilities['Nimbus Bed']={groups:[{...f,level:1},{...f,level:2}]};
  assert.deepEqual(prepare(catalog,s).map(r=>[r.id,r.group]).sort(),[['quick_wool',1],['wool',0]].sort());
 });
+
+test('quick pearl and quick scales are available only with their detector unlocks',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
+ const s=state();s.autoWorkers=true;s.facilities={'Tidewhisper Sandcastle':{...f,level:4},'Floral Windmill':{...f,level:1}};
+ s.modules={resource_detector:7};let ids=new Set(prepare(catalog,s).map(r=>r.id));assert.ok(!ids.has('quick_pearl'));assert.ok(!ids.has('quick_scales'));assert.ok(ids.has('pearl'));assert.ok(ids.has('scales'));
+ s.modules.resource_detector=9;ids=new Set(prepare(catalog,s).map(r=>r.id));assert.ok(ids.has('quick_pearl'));assert.ok(ids.has('quick_scales'));assert.ok(!ids.has('pearl'));assert.ok(!ids.has('scales'));
+ const pearl=catalog.find(r=>r.id==='quick_pearl');assert.deepEqual([pearl.yield,pearl.workload,pearl.abilityLevel,pearl.environment],[4,2700,3,'Warm']);assert.equal(recipeFamily(pearl),'Shelly');
+});

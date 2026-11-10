@@ -18,7 +18,7 @@ Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte P
 
 ## Bekannte Grenzen
 
-- Der Katalog enthält 258 Rezepte, einschließlich der recherchierten RV-21/22-Rezepte. Der Datenbestand ist nicht vollständig. Keine vollständige Home-Index-Prüfung; gesperrte Rezepte müssen selbst deaktiviert werden.
+- Der Katalog enthält 259 Rezepte, einschließlich der recherchierten RV-21/22-Rezepte. Der Datenbestand ist nicht vollständig. Keine vollständige Home-Index-Prüfung; gesperrte Rezepte müssen selbst deaktiviert werden.
 - Passendes Klima wird angenommen, ohne Standort- oder Reichweitenprüfung. Wege, Wechselzeiten, Ernte- und Transportarbeit, Essen und Personalanzahl werden nicht simuliert.
 - Lagerbestand wird über den Zeitraum verteilt; Startzeiten und ganze Chargen werden nicht simuliert.
 - Eventpunkte für Möbel, Aufträge, Mutationen und sonstige Quellen fehlen. Eventdaten und Preise im Spiel überprüfen.
@@ -30,9 +30,9 @@ Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte P
 
 CSV-Daten stammen aus dem lokalen Aniimax-Zweig `pr/49` (Kopie 2026-11-09); der öffentliche Hauptzweig stand beim Vergleich auf Commit `887b54c6687a953a86ab3d7b00fba1a44fe4a4f9`. Eventdaten aus dem lokalen Zweig sind nicht unabhängig vollständig geprüft. [Aniimax](https://github.com/ae-bii/aniimax) ist MIT-lizenziert; der Lizenztext liegt unter `data/ANIIMAX-LICENSE`.
 
-RV-21/22-Rezeptdaten, Zutaten, Freischaltungen und Klima: [AniimoTools Rezepte](https://aniimotools.dev/systems/recipes/) und [RV-Level](https://aniimotools.dev/systems/homeland/rv-levels/). Verkaufspreise und Fähigkeiten: [AniimoGuide Gebäudeseiten](https://aniimoguide.com/homeland/facilities); Saatgutpreise: [Beskor Home Coin Shop](https://www.aniimo.gg/shop/home-coin/).
+RV-21/22-Rezeptdaten, Zutaten, Freischaltungen und Klima: [AniimoTools Rezepte](https://aniimotools.dev/systems/recipes/) und [RV-Level](https://aniimotools.dev/systems/homeland/rv-levels/). Verkaufspreise und Fähigkeiten: [AniimoGuide Gebäudeseiten](https://aniimoguide.com/homeland/facilities); Quick-Rezepte und deren Erträge: [AniimoGuide Gebäudeseiten](https://aniimoguide.com/homeland/facilities), [AniimoTools Rezepte](https://aniimotools.dev/systems/recipes/) und [RV-Level](https://aniimotools.dev/systems/homeland/rv-levels/). Saatgutpreise: [Beskor Home Coin Shop](https://www.aniimo.gg/shop/home-coin/).
 
-Referenzen: [Arbeitsmechanik](https://aniimotools.dev/systems/homeland/aniimo-at-work/), [Pflanzen und Gebäude](https://aniimotools.dev/systems/homeland/crops-and-facilities/), [RV-Level](https://aniimotools.dev/systems/homeland/rv-levels/), [Home Index](https://aniimotools.dev/systems/homeland/home-index/), [Home Season](https://aniimotools.dev/systems/homeland/home-season/) und [Produktionssimulator](https://aniimotools.dev/systems/homeland/production-simulator/). Quellenwerte können abweichen.
+Referenzen: [Arbeitsmechanik](https://aniimotools.dev/systems/homeland/aniimo-at-work/), [Pflanzen und Gebäude](https://aniimotools.dev/systems/homeland/crops-and-facilities/), [RV-Level](https://aniimotools.dev/systems/homeland/rv-levels/), [Home Index](https://aniimotools.dev/systems/homeland/home-index/), [Home Season](https://aniimotools.dev/systems/homeland/home-season/) und [Produktionssimulator](https://aniimotools.dev/systems/homeland/production-simulator/). Quellenwerte können abweichen. Quick Agave: 40 Minuten und Ertrag 10 wurden vom Spieler im Spiel bestätigt; AniimoGuide nennt eine abweichende Grundzeit.
 
 Strombedarf, E-Mode und Generatorwerte: [MOANIIMO E-Mode Guide](https://aniimo.kr/en/systems/camper-home-electric-mode-guide); Plot-Reihenfolge und Reichweiten wurden mit [Aniiland Floor Layout](https://aniiland.wintira.win/homeland/floor-layout/) abgeglichen.
 

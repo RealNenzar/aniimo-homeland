@@ -2582,7 +2582,7 @@
     "byproductYield": 0,
     "eventPoints": 0,
     "event": null,
-    "verified": false,
+    "verified": true,
     "source": "floral_windmill.csv"
   },
   {
@@ -2603,7 +2603,7 @@
     "byproductYield": 0,
     "eventPoints": 0,
     "event": null,
-    "verified": false,
+    "verified": true,
     "source": "floral_windmill.csv"
   },
   {
@@ -5309,6 +5309,27 @@
     "workload": 2700.0,
     "facilityLevel": 3,
     "module": "",
+    "environment": "Warm",
+    "ability": "Leisure",
+    "abilityLevel": 3,
+    "sellValue": 450.0,
+    "sellCurrency": "coins",
+    "seedCost": 0,
+    "byproductYield": 0,
+    "eventPoints": 0,
+    "event": null,
+    "verified": true,
+    "source": "tidewhisper_sandcastle.csv"
+  },
+  {
+    "id": "quick_pearl",
+    "facility": "Tidewhisper Sandcastle",
+    "ingredients": {},
+    "yield": 4.0,
+    "seconds": 0,
+    "workload": 2700.0,
+    "facilityLevel": 4,
+    "module": "resource_detector:9",
     "environment": "Warm",
     "ability": "Leisure",
     "abilityLevel": 3,

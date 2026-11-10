@@ -59,3 +59,6 @@ input,select,.quiet{background:#fff;color:#111}
 .daily-row{display:grid;grid-template-columns:120px 150px minmax(180px,1fr) auto auto;gap:10px;align-items:center}.daily-row label:not(.check){display:flex;flex-direction:column;align-items:stretch}.daily-row input[type=number]{width:100%}@media(max-width:800px){.daily-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .rv-fastest{border:1px solid #aaa;border-radius:9px;padding:12px;margin:12px 0}.rv-fastest small{font-size:12px;line-height:1.5}
+
+/* E-mode marker remains visible on both light and dark maps. */
+.layout-object .electric-badge{position:absolute;z-index:1;top:1px;right:1px;display:grid;place-items:center;min-width:12px;height:12px;padding:0 1px;border:1px solid #593c00;border-radius:3px;background:#ffdf47;color:#392a00;font-size:10px;line-height:1;pointer-events:none}

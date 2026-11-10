@@ -34,6 +34,23 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual(self.recipe('orange_flower_rice_drink')['ingredients'], {'sorghum_fermented_mash': 1, 'dried_orange_flower': 1})
         self.assertEqual(self.recipe('premium_quicksilver_springstone')['module'], 'crafting_module:8')
 
+    def test_quick_recipe_yields_and_workloads(self):
+        expected = {
+            'quick_aromathyst': (12, 2700, 0), 'quick_wheat': (42, 0, 1200),
+            'quick_potato': (46, 0, 2400), 'quick_rice': (79, 0, 2400),
+            'quick_strawberry': (26, 0, 2400), 'quick_scales': (12, 2700, 0),
+            'quick_wool': (6, 2700, 0), 'quick_agave': (10, 0, 2400),
+            'quick_snowmelt_cold_spring': (9, 2700, 0), 'quick_sea_salt': (23, 2250, 0),
+            'quick_pearl': (4, 2700, 0), 'quick_well_water': (15, 1800, 0),
+            'quick_fresh_water': (17, 2700, 0), 'quick_deep_rock_spring_water': (9, 2700, 0),
+            'quick_natural_mineral_spring_water': (9, 2700, 0), 'quick_bamboo': (23, 0, 2400),
+            'quick_lemon': (42, 0, 2400), 'quick_maple_syrup': (30, 0, 2400),
+            'quick_coconut': (8, 0, 2400),
+        }
+        actual = {r['id']: (r['yield'], r['workload'], r['seconds']) for r in self.recipes if r['id'].startswith('quick_')}
+        self.assertEqual(actual, expected)
+        self.assertEqual((self.recipe('agave')['yield'], self.recipe('agave')['seconds']), (6, 2400))
+
     def test_fixed_growth_does_not_use_workload(self):
         self.assertEqual(self.recipe('cocoa')['workload'], 0)
         self.assertEqual(self.recipe('cocoa')['seconds'], 2400)
