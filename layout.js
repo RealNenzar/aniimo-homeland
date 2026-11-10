@@ -103,10 +103,9 @@ export function placePower(layout, generatorCount, poleCap) {
     return best;
   }
   for(let i=0;i<generatorCount;i++){const p=choose(4,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
-  let poles=0;
-  while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++}
   // Move uncovered electric facilities into unused powered space when possible.
   // Climate-dependent facilities stay in place so their growing conditions cannot change.
+  function moveUncovered(){
   for(const target of uncovered()){
     if(target.environment||target.name==='Farmland'||target.name==='Woodland')continue;
     const old=position.get(target.plot);for(let y=0;y<target.h;y++)for(let x=0;x<target.w;x++)occupied.delete(key(old.x+target.x+x,old.y+target.y+y));
@@ -120,6 +119,13 @@ export function placePower(layout, generatorCount, poleCap) {
     }
     if(spot){Object.assign(target,spot);Object.assign(target.source,{plot:spot.plot,x:spot.x,y:spot.y})}
     const o=position.get(target.plot);for(let y=0;y<target.h;y++)for(let x=0;x<target.w;x++)occupied.add(key(o.x+target.x+x,o.y+target.y+y));
+  }
+  }
+  let poles=0;
+  if(generatorsPlaced===generatorCount)moveUncovered();
+  while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){
+    const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++;
+    moveUncovered();
   }
   // Remove poles that do not contribute to coverage or to the connected network.
   {

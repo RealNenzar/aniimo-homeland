@@ -364,3 +364,10 @@ test('a pole needs its footprint in an existing power range',()=>{
  assert.equal(powerReachesNode(generator,poleInside),true);
  assert.equal(powerReachesNode(poleInside,{x:40,y:0,w:6,h:6}),true);
 });
+
+test('unpowered facilities are moved into existing coverage before placing poles',()=>{
+ const layout={plots:1,unplaced:[],placed:[{name:'Well',plot:1,x:0,y:0,w:8,h:8,electric:true},{name:'Well',plot:1,x:68,y:48,w:8,h:8,electric:true}]};
+ const grid=placePower(layout,1,10);
+ assert.equal(grid.complete,true);assert.equal(grid.uncovered,0);assert.equal(grid.poles,0);
+ assert.ok(layout.placed[1].x<68 || layout.placed[1].y<48);
+});
