@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {speed,model,optimize,prepare} from '../solver.js';
 import {powerSummary,poleLimit} from '../power.js';
 import {presetFacilities} from '../facilities.js';
-import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID} from '../layout.js';
+import {layoutPlan,placePower,placeClimate,packClimate,placeStorage,STORAGE_LIMITS,coverageSegments,PLOT_GRID,powerReachesNode} from '../layout.js';
 import {translate} from '../i18n.js';
 import {allowedStock,STOCK_ITEMS} from '../inventory.js';
 import {facilityImage} from '../images.js';
@@ -354,4 +354,13 @@ test('family limits reserve a family member per facility while blank stays unres
 test('team recommendation names the required family',()=>{
  const result={rows:[{recipe:{id:'petals',facility:'Nimbus Bed',worker:{skill:3},workload:2700,abilityLevel:3},units:1,rate:1}],power:{generators:0}};
  assert.equal(buildTeam(result,{climate:{placed:[]}},[]).groups[0].family,'Iris');
+});
+
+test('a pole needs its footprint in an existing power range',()=>{
+ const generator={x:0,y:0,radius:22,w:4,h:4};
+ const poleOutside={x:30,y:0,radius:14,w:6,h:6};
+ const poleInside={x:24,y:0,radius:14,w:6,h:6};
+ assert.equal(powerReachesNode(generator,poleOutside),false);
+ assert.equal(powerReachesNode(generator,poleInside),true);
+ assert.equal(powerReachesNode(poleInside,{x:40,y:0,w:6,h:6}),true);
 });

@@ -70,6 +70,12 @@ export function placeClimate(layout, rv, definitions) {
 }
 
 // Greedy, conservative quarter-tile footprint grid with half-tile candidate positions. Coverage is not a proof of in-game placement.
+// A pole or generator must physically intersect an already powered node's range.
+export function powerReachesNode(source, target) {
+  return source.x+source.radius>target.x-target.w/2 && source.x-source.radius<target.x+target.w/2 &&
+         source.y+source.radius>target.y-target.h/2 && source.y-source.radius<target.y+target.h/2;
+}
+
 export function placePower(layout, generatorCount, poleCap) {
   const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
   const occupied=new Set();
@@ -85,8 +91,8 @@ export function placePower(layout, generatorCount, poleCap) {
       for(let y=0;y<=PLOT_HEIGHT-size;y+=2)for(let x=0;x<=PLOT_WIDTH-size;x+=2){
         let free=true;for(let yy=0;yy<size&&free;yy++)for(let xx=0;xx<size;xx++)if(occupied.has(key(o.x+x+xx,o.y+y+yy))){free=false;break}
         if(!free)continue;
-        const node={x:o.x+x+size/2,y:o.y+y+size/2,radius};
-        if(mustConnect && !nodes.some(n=>Math.abs(n.x-node.x)<n.radius+radius && Math.abs(n.y-node.y)<n.radius+radius))continue;
+        const node={x:o.x+x+size/2,y:o.y+y+size/2,w:size,h:size,radius};
+        if(mustConnect && !nodes.some(n=>powerReachesNode(n,node)))continue;
         const hits=remaining.filter(t=>touches(node,t)).length;
         const distance=remaining.length?Math.min(...remaining.map(t=>Math.max(Math.abs(node.x-(t.gx+t.w/2)),Math.abs(node.y-(t.gy+t.h/2))))):0;
         const score=hits*10000-distance;
@@ -120,7 +126,7 @@ export function placePower(layout, generatorCount, poleCap) {
     const covered=targets.filter(t=>nodes.some(n=>touches(n,t)));
     const connected=list=>{
       const seen=new Set(list.filter(n=>n.name==='Crackle Generator'));let changed=true;
-      while(changed){changed=false;for(const n of list)if(!seen.has(n)&&[...seen].some(o=>Math.abs(n.x-o.x)<n.radius+o.radius&&Math.abs(n.y-o.y)<n.radius+o.radius)){seen.add(n);changed=true}}
+      while(changed){changed=false;for(const n of list)if(!seen.has(n)&&[...seen].some(o=>powerReachesNode(o,n))){seen.add(n);changed=true}}
       return seen.size===list.length&&covered.every(t=>list.some(n=>touches(n,t)));
     };
     for(let i=nodes.length-1;i>=0;i--)if(nodes[i].name==='Crackle Power Pole'&&connected(nodes.filter((_,j)=>j!==i))){nodes.splice(i,1);poles--}
