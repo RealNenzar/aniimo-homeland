@@ -137,10 +137,55 @@ export function placePower(layout, generatorCount, poleCap) {
     const o=position.get(target.plot);for(let y=0;y<target.h;y++)for(let x=0;x<target.w;x++)occupied.add(key(o.x+target.x+x,o.y+target.y+y));
   }
   }
+  // If a dense block leaves no place for a connected pole, relocate one ordinary
+  // facility to make a pole-sized opening. Climate-sensitive objects stay fixed.
+  function makeRoomForPole(){
+    const remaining=uncovered(), candidates=[];
+    const intersects=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+    for(let plot=1;plot<=layout.plots;plot++){
+      const origin=position.get(plot);
+      for(let y=0;y<=PLOT_HEIGHT-6;y+=2)for(let x=0;x<=PLOT_WIDTH-6;x+=2){
+        const gx=origin.x+x,gy=origin.y+y,rect={x:gx,y:gy,w:6,h:6};
+        const candidate={x:gx+3,y:gy+3,w:6,h:6,radius:14};
+        if(!nodes.some(n=>powerReachesNode(n,candidate)))continue;
+        if(nodes.some(n=>intersects(rect,{x:n.x-n.w/2,y:n.y-n.h/2,w:n.w,h:n.h})))continue;
+        const blockers=layout.placed.filter(p=>intersects(rect,globalRect(p)));
+        if(blockers.length!==1)continue;
+        const blocker=blockers[0];
+        if(blocker.environment||blocker.infrastructure||['Farmland','Woodland','Heat Furnace','Cooling Unit','Sunlamp'].includes(blocker.name))continue;
+        const hits=remaining.filter(t=>touches(candidate,t)).length;
+        const distance=remaining.length?Math.min(...remaining.map(t=>Math.max(Math.abs(candidate.x-(t.gx+t.w/2)),Math.abs(candidate.y-(t.gy+t.h/2))))):0;
+        candidates.push({rect,blocker,score:hits*10000-distance});
+      }
+    }
+    candidates.sort((a,b)=>b.score-a.score);
+    for(const {rect,blocker} of candidates.slice(0,80)){
+      const old=globalRect(blocker);
+      for(let yy=0;yy<blocker.h;yy++)for(let xx=0;xx<blocker.w;xx++)occupied.delete(key(old.x+xx,old.y+yy));
+      let destination=null;
+      const plots=[blocker.plot,...Array.from({length:layout.plots},(_,i)=>i+1).filter(p=>p!==blocker.plot)];
+      for(const plot of plots){if(destination)break;const o=position.get(plot);
+        for(let y=0;y<=PLOT_HEIGHT-blocker.h&&!destination;y+=2)for(let x=0;x<=PLOT_WIDTH-blocker.w&&!destination;x+=2){
+          const pos={name:blocker.name,x:o.x+x,y:o.y+y,w:blocker.w,h:blocker.h};
+          if(intersects(pos,rect))continue;
+          if((blocker.name==='Mine'||blocker.name==='Well')&&layout.placed.some(p=>p!==blocker&&!mineWellClearance(pos,globalRect(p))))continue;
+          let free=true;for(let yy=0;yy<blocker.h&&free;yy++)for(let xx=0;xx<blocker.w;xx++)if(occupied.has(key(pos.x+xx,pos.y+yy))){free=false;break}
+          if(free)destination={plot,x,y,gx:pos.x,gy:pos.y};
+        }
+      }
+      if(destination){
+        Object.assign(blocker,{plot:destination.plot,x:destination.x,y:destination.y});
+        const target=targets.find(t=>t.source===blocker);if(target)Object.assign(target,destination);
+      }
+      const at=globalRect(blocker);for(let yy=0;yy<blocker.h;yy++)for(let xx=0;xx<blocker.w;xx++)occupied.add(key(at.x+xx,at.y+yy));
+      if(destination)return true;
+    }
+    return false;
+  }
   let poles=0;
   if(generatorsPlaced===generatorCount)moveUncovered();
   while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){
-    const p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++;
+    let p=choose(6,14,true);if(!p && makeRoomForPole())p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++;
     moveUncovered();
   }
   // Remove poles that do not contribute to coverage or to the connected network.

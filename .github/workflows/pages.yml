@@ -11,7 +11,26 @@ concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check generated recipe catalog
+        run: |
+          python tools/catalog.py
+          git diff --exit-code -- data/catalog.json
+      - name: Test recipe data
+        run: python -m unittest discover -s tests -v
+      - name: Test planning and power layout
+        run: npm test
   deploy:
+    needs: validate
     runs-on: ubuntu-latest
     environment:
       name: github-pages

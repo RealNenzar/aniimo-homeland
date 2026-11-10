@@ -433,3 +433,21 @@ test('generated placements retain clearance between mines and wells',()=>{
  const rows=[{recipe:{facility:'Mine',id:'gem',worker:{electric:true,level:6}},units:5,rate:1},{recipe:{facility:'Well',id:'fresh_water',worker:{electric:true,level:2}},units:5,rate:1}];
  const layout=layoutPlan(rows,1);for(const mine of layout.placed.filter(p=>p.name==='Mine'))for(const well of layout.placed.filter(p=>p.name==='Well'))assert.ok(mineWellClearance(mine,well));
 });
+
+test('dense layout finds a connected, collision-free grid without moving climate-sensitive buildings',()=>{
+ const layout=JSON.parse(readFileSync(new URL('./fixtures/dense-power-layout.json',import.meta.url)));
+ const original=layout.placed.filter(p=>p.environment||p.infrastructure||['Farmland','Woodland'].includes(p.name)).map(p=>[p,p.plot,p.x,p.y]);
+ const grid=placePower(layout,3,24);assert.equal(grid.complete,true);assert.equal(grid.uncovered,0);assert.equal(grid.generatorsPlaced,3);assert.ok(grid.poles>0&&grid.poles<=24);
+ for(const [p,plot,x,y] of original)assert.deepEqual([p.plot,p.x,p.y],[plot,x,y]);
+ const origins=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*80,y:y*60}])));
+ const rect=p=>({name:p.name,x:origins.get(p.plot).x+p.x,y:origins.get(p.plot).y+p.y,w:p.w,h:p.h});
+ const all=[...layout.placed,...grid.placed];
+ for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++){
+  const a=rect(all[i]),b=rect(all[j]);assert.ok(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y,`${all[i].name} overlaps ${all[j].name}`);assert.ok(mineWellClearance(a,b));
+ }
+ const nodes=grid.placed.map(p=>{const z=rect(p);return {...z,x:z.x+z.w/2,y:z.y+z.h/2,radius:p.radius}});
+ const reached=new Set(nodes.filter(n=>n.name==='Crackle Generator'));let changed=true;
+ while(changed){changed=false;for(const node of nodes)if(!reached.has(node)&&[...reached].some(other=>powerReachesNode(other,node))){reached.add(node);changed=true}}
+ assert.equal(reached.size,nodes.length);
+ for(const facility of layout.placed.filter(p=>p.electric)){const x=rect(facility);assert.ok(nodes.some(n=>n.x+n.radius>x.x&&n.x-n.radius<x.x+x.w&&n.y+n.radius>x.y&&n.y-n.radius<x.y+x.h));}
+});
