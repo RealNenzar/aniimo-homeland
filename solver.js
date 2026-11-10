@@ -155,12 +155,15 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   return {lp,recipes,sales,objectives,electrical,daily};
 }
 
-export async function optimize(catalog,state,onProgress=()=>{}) {
+let highsInstance;
+function loadHighs(){return highsInstance ||= highsModule({print:()=>{},printErr:()=>{}}).catch(error=>{highsInstance=null;throw error});}
+function solutionRows(problem,result){return problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6)}
+export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   if (state.power?.enabled) {
     const p=state.power, rv=Number(state.currentRv)||0;
     if (rv<12 || p.module<1 || p.module>5 || rv<MODULE_RV[p.module] || p.level>p.module || p.watts<=0 || p.watts>GENERATOR_WATTS[p.level]) throw Error('Stromnetz prüfen: RV-Level, Power Module, Generatoren oder Poles überschreiten die Freischaltung.');
   }
-  const highs=await highsModule({print:()=>{},printErr:()=>{}}), fixed=[];
+  const highs=await loadHighs(), fixed=[];
   const goals=state.priorities.filter(p=>p.enabled).flatMap(p=>p.id==='daily'&&(state.daily||[]).some(d=>d.priority&&Number(d.count)>0)?['daily_priority','daily']:[p.id]);
   if(goals.includes('daily')&&!(state.daily||[]).some(d=>Number(d.count)>0&&Number(d.quantity)>0)) throw Error('Bitte mindestens einen Eventauftrag eintragen.');
   if(!goals.length) throw Error('Bitte mindestens eine Priorität aktivieren.');
@@ -177,6 +180,7 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
     }
   }
   for(const key of goals){
+    if(key==='daily'&&fixed.at(-1)?.key==='daily_priority'&&(state.daily||[]).filter(d=>d.item&&Number(d.count)>0&&Number(d.quantity)>0).every(d=>d.priority)){const prev=fixed.at(-1);fixed.push({key,value:prev.value,status:prev.status});continue}
     onProgress(key); problem=model(catalog,state,fixed,key);
     result=highs.solve(problem.lp,{time_limit:30,mip_rel_gap:0.001});
     if(!result.Columns || !['Optimal','Time limit reached'].includes(result.Status)) throw Error(`Berechnung: ${result.Status || 'kein Ergebnis'}`);
@@ -184,9 +188,10 @@ export async function optimize(catalog,state,onProgress=()=>{}) {
     fixed.push({key,value,status:result.Status});
   }
   // Among plans with the same prioritized result, prefer fewer staffed stations.
-  if(state.autoWorkers){const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
+  const deferTieBreak=options.deferTieBreak?.(solutionRows(problem,result))===true;
+  if(state.autoWorkers&&!deferTieBreak){onProgress('workers');const alternative=model(catalog,state,fixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
   const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
-  return {fastestUpgrade,goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {fastestUpgrade,goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:solutionRows(problem,result),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }

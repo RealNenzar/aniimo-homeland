@@ -24,7 +24,7 @@ Die Platzierung folgt der 4×4-Grundstücksreihenfolge und verteilt benötigte P
 - Eventpunkte für Möbel, Aufträge, Mutationen und sonstige Quellen fehlen. Eventdaten und Preise im Spiel überprüfen.
 - Klima- und Stromreichweiten beruhen auf einem vereinfachten Raster. Wege, Hindernisse und bereits vorhandene Möbel werden nicht geprüft. Nicht platzierte Gebäude sowie unvollständige Klima- und Stromversorgung werden angezeigt. Wenn sie auftreten, ist die errechnete Produktionsrate für das gezeigte Layout nicht abgesichert.
 - Fähigkeiten und Stufen begrenzen die Produktionsarbeit. Dieselben Aniimo mit mehreren Fähigkeiten, die genaue Persönlichkeitsverteilung und Familienbindungen werden nicht individuell verfolgt.
-- Bei Erreichen des Zeitlimits wird keine Optimalität behauptet.
+- Bei Erreichen des Zeitlimits wird keine Optimalität behauptet. Der Optimierer wird zwischen Klimarunden wiederverwendet; identische Auftragsziele werden nicht erneut gelöst. Vorläufige Lösungen, die bereits eine Klimanachrechnung benötigen, überspringen die Personal-Feinoptimierung bis zur letzten Runde.
 
 ## Daten und Quellen
 

@@ -307,3 +307,17 @@ test('forecast refuses to repeat a finite order over an extended period',()=>{
  const r={rows:[{rate:1,recipe:{id:'lumber',yield:1,ingredients:{}}}],sales:[],daily:[{item:'lumber',quantity:1,completed:1}]};
  assert.deepEqual(upgradeForecast(r,s),{reachable:false,reason:'finite'});
 });
+test('identical preferred and all-order objectives do not run the same solve twice',async()=>{
+ const s=state();s.facilities={Farmland:{...f,count:10}};s.daily=[{item:'wheat',count:3,quantity:3,priority:true}];s.priorities=[{id:'daily',enabled:true}];const phases=[];
+ const result=await optimize([recipe('wheat','Farmland',{seconds:3600})],s,p=>phases.push(p));
+ assert.deepEqual(phases,['daily_priority']);assert.equal(result.daily[0].completed,3);assert.equal(result.goals.find(g=>g.key==='daily').value,3);
+});
+test('nonidentical order goals remain separately optimized',async()=>{
+ const s=state();s.facilities={Farmland:{...f,count:2}};s.daily=[{item:'wheat',count:1,quantity:1,priority:true},{item:'wheat',count:1,quantity:1,priority:false}];s.priorities=[{id:'daily',enabled:true}];const phases=[];
+ const result=await optimize([recipe('wheat','Farmland',{seconds:3600})],s,p=>phases.push(p));assert.deepEqual(phases,['daily_priority','daily']);assert.equal(result.daily.reduce((n,d)=>n+d.completed,0),2);
+});
+test('climate retry defers staffing tie-break without changing priorities',async()=>{
+ const s=state();s.autoWorkers=true;s.facilities={Farmland:{...f,count:1}};const phases=[];let checked=false;
+ const result=await optimize([recipe('wheat','Farmland',{seconds:3600,sellValue:10})],s,p=>phases.push(p),{deferTieBreak:rows=>{checked=rows.length>0;return true}});
+ assert.equal(checked,true);assert.ok(!phases.includes('workers'));assert.equal(result.goals[0].value,10);
+});
