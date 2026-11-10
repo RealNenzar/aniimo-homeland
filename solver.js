@@ -1,6 +1,7 @@
 import highsModule from './vendor/highs/highs.mjs';
 import { facilityGroups } from './facilities.js';
 import {workers} from './worker-abilities.js';
+import {recipeFamily} from './families.js';
 import { ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, facilityWatts } from './power.js';
 
 export const RV_ANIIMO_LIMITS=[0,8,11,14,17,20,22,24,26,28,30,32,34,36,38,40,42,43,44,45,46,47];
@@ -96,6 +97,12 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     });
   }
   const resident=new Set(['Tidewhisper Sandcastle','Dewy House','Nimbus Bed','Starfall Hammock','Floral Windmill']);
+  // Each occupied leisure facility needs one member of its recipe's family.
+  for(const [family,count] of Object.entries(state.familyCounts||{})) {
+    if(count===''||count===null||count===undefined)continue;
+    const terms=recipes.flatMap((r,i)=>!r.worker.electric&&recipeFamily(r)===family?[[1,`n${i}`]]:[]);
+    if(terms.length)lines.push(`family${lines.length}: ${expr(terms)} <= ${Math.max(0,Math.floor(Number(count)||0))}`);
+  }
   for(const [ability,levels] of Object.entries(state.workerCounts||{}))for(let level=1;level<=4;level++){
     const count=levels[level];if(count===''||count===null||count===undefined)continue;
     const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability&&r.worker.skill===level?[[resident.has(r.facility)?1:speed(r,r.worker)/3600,`${resident.has(r.facility)?'n':'x'}${i}`]]:[]);

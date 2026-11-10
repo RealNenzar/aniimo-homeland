@@ -332,3 +332,26 @@ test('RV 21 and 22 recipes respect facility, module and recipe-note unlocks',()=
  for(const id of ['quick_agave','quick_snowmelt_cold_spring','orange_flower_rice_drink','premium_quicksilver_springstone'])assert.ok(ids().has(id),id);
  s.facilities.Farmland.level=7;assert.ok(!ids().has('sorghum'));
 });
+
+import {recipeFamily} from '../families.js';
+test('family requirements match each leisure recipe',()=>{
+ for(const [facility,id,family] of [
+  ['Nimbus Bed','wool','Nimbi'],['Nimbus Bed','quick_wool','Nimbi'],['Nimbus Bed','petals','Iris'],
+  ['Starfall Hammock','star','Celestis'],['Starfall Hammock','gold_speck_cap','Coinwisp'],
+  ['Floral Windmill','scales','Flutternym'],['Floral Windmill','quick_scales','Flutternym'],
+  ['Dewy House','aromathyst','Dewy'],['Dewy House','quick_aromathyst','Dewy'],
+  ['Tidewhisper Sandcastle','sea_salt','Susuta'],['Tidewhisper Sandcastle','pearl','Shelly'],['Tidewhisper Sandcastle','sweet_cone','Sugarfish']])
+   assert.equal(recipeFamily({facility,id}),family,id);
+ assert.equal(recipeFamily({facility:'Nimbus Bed',id:'star'}),null);
+});
+test('family limits reserve a family member per facility while blank stays unrestricted',async()=>{
+ const s=state();s.autoWorkers=true;s.facilities={'Nimbus Bed':{...f,count:2,level:3}};
+ const recipes=[recipe('wool','Nimbus Bed',{seconds:0,workload:2700,abilityLevel:3,sellValue:100}),recipe('quick_wool','Nimbus Bed',{seconds:0,workload:2700,abilityLevel:3,sellValue:100,yield:2})];
+ s.familyCounts={Nimbi:0};assert.equal((await optimize(recipes,s)).rows.length,0);
+ s.familyCounts={Nimbi:1};let result=await optimize(recipes,s);assert.ok(result.rows.reduce((sum,row)=>sum+row.units,0)<=1.00001);
+ s.familyCounts={Nimbi:''};result=await optimize(recipes,s);assert.ok(result.rows.reduce((sum,row)=>sum+row.units,0)>1.9);
+});
+test('team recommendation names the required family',()=>{
+ const result={rows:[{recipe:{id:'petals',facility:'Nimbus Bed',worker:{skill:3},workload:2700,abilityLevel:3},units:1,rate:1}],power:{generators:0}};
+ assert.equal(buildTeam(result,{climate:{placed:[]}},[]).groups[0].family,'Iris');
+});
