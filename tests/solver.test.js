@@ -468,3 +468,43 @@ test('RV limit counts full assigned staff rather than fractional workload',async
  const r=recipe('dish','Claw Game Cooker',{seconds:0,workload:3600,abilityLevel:3,sellValue:1});
  const result=await optimize([r],s);assert.ok(result.rows.reduce((n,row)=>n+row.units,0)<=7);
 });
+
+import {futureUpgradeTargets} from '../rv-costs.js';
+test('future RV costs add every upgrade and do not count coins as material reserves',()=>{
+ assert.deepEqual(futureUpgradeTargets(18,22),{densified_timber_component:2910,microcrystalline_ore_plate:14790});
+ assert.deepEqual(futureUpgradeTargets(21,22),{densified_timber_component:1190,microcrystalline_ore_plate:10580});
+ assert.deepEqual(futureUpgradeTargets(22,22),{});
+});
+test('verified Starfall recipe is selectable without unverified data',()=>{
+ const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
+ const s=state();s.autoWorkers=true;s.facilities={'Starfall Hammock':{...f,level:1}};
+ const star=prepare(catalog,s).find(r=>r.id==='star');assert.ok(star);assert.equal(star.environment,'Cool');assert.equal(recipeFamily(star),'Celestis');
+});
+test('future reserve can use at most ten percent of coin optimum',async()=>{
+ const s=state();s.hours=1;s.autoWorkers=true;s.facilities={Farmland:{...f,count:10}};s.priorities=[{id:'coins',enabled:true},{id:'reserve',enabled:true}];s.reserveTargets={wood_block:2};s.reserveCoinTolerance=.1;
+ const recipes=[recipe('crop','Farmland',{seconds:3600,sellValue:100}),recipe('wood_block','Farmland',{seconds:3600,sellCurrency:'none'})];
+ const result=await optimize(recipes,s),coins=result.goals.find(g=>g.key==='coins');
+ assert.ok(coins.maximum>999);assert.ok(coins.value>=899.99);assert.ok(result.rows.some(row=>row.recipe.id==='wood_block'));
+});
+test('future reserve accounts for inventory only once and can produce other materials if one is locked',async()=>{
+ const s=state();s.hours=1;s.autoWorkers=true;s.facilities={Farmland:{...f,count:4}};s.stock={wood_block:2};s.targets={wood_block:2};s.reserveTargets={wood_block:5,missing:100};s.priorities=[{id:'rv',enabled:true},{id:'reserve',enabled:true}];
+ const result=await optimize([recipe('wood_block','Farmland',{seconds:3600,sellCurrency:'none'})],s);
+ assert.ok(result.goals.find(g=>g.key==='reserve').value>=.49);assert.ok(result.rows.some(row=>row.recipe.id==='wood_block'));
+});
+test('event and future reserve share a single coin allowance rather than losing ten percent twice',async()=>{
+ const s=state();s.hours=1;s.autoWorkers=true;s.event=true;s.beans=100;s.facilities={Farmland:{...f,count:10}};s.reserveTargets={wood_block:2};s.eventCoinTolerance=.1;s.reserveCoinTolerance=.1;s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true},{id:'reserve',enabled:true}];
+ const recipes=[recipe('crop','Farmland',{seconds:3600,sellValue:100}),recipe('pumpkin','Farmland',{seconds:3600,event:'magical_wonder_night',eventPoints:1}),recipe('wood_block','Farmland',{seconds:3600,sellCurrency:'none'})];
+ const result=await optimize(recipes,s);assert.ok(result.goals.find(g=>g.key==='coins').value>=899.99);assert.ok(result.goals.find(g=>g.key==='event').value>.9);
+});
+
+test('reserve coin allowance is not spent by an earlier event priority',async()=>{
+ const s=state();s.hours=1;s.autoWorkers=true;s.event=true;s.beans=100;s.facilities={Farmland:{...f,count:10}};s.reserveTargets={wood_block:2};s.eventCoinTolerance=0;s.reserveCoinTolerance=.1;s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true},{id:'reserve',enabled:true}];
+ const recipes=[recipe('crop','Farmland',{seconds:3600,sellValue:100}),recipe('pumpkin','Farmland',{seconds:3600,event:'magical_wonder_night',eventPoints:1}),recipe('wood_block','Farmland',{seconds:3600,sellCurrency:'none'})];
+ const result=await optimize(recipes,s);assert.ok(result.goals.find(g=>g.key==='event').maximum<1e-5);assert.ok(result.goals.find(g=>g.key==='reserve').value>.4);assert.ok(result.goals.find(g=>g.key==='coins').value>=899.99);
+});
+
+test('second Claw Game Cooker is used when its output raises the active goal',async()=>{
+ const s=state();s.autoWorkers=true;s.facilities={'Claw Game Cooker':{...f,count:2}};
+ const r=recipe('food','Claw Game Cooker',{seconds:0,workload:60,abilityLevel:3,sellValue:10});
+ const result=await optimize([r],s);assert.equal(result.rows.length,1);assert.equal(result.rows[0].units,2);
+});

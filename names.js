@@ -20,6 +20,11 @@ entries.push(
 ['red_sorghum_rice_drink','Rotes Sorghumreisgetränk','Red Sorghum Rice Drink','Напиток из красного сорго и риса','Boisson de riz au sorgho rouge'],['cocoa_sweet_cone','Kakao-Süßkegel','Cocoa Sweet Cone','Сладкий рожок с какао','Cornet sucré au cacao'],['sugar_core_sweet_cone','Süßkegel mit Zuckerkern','Sugar Core Sweet Cone','Сладкий рожок с сахарной начинкой','Cornet sucré au cœur de sucre'],['shredded_coconut_cake','Kokosraspelkuchen','Shredded Coconut Cake','Кокосовый пирог','Gâteau à la noix de coco râpée'],['cranberry_soft_cake','Weicher Cranberrykuchen','Cranberry Soft Cake','Мягкий клюквенный пирог','Gâteau moelleux aux canneberges'],['orange_flower_rice_drink','Orangenblüten-Reisgetränk','Orange Flower Rice Drink','Рисовый напиток с цветком апельсина','Boisson de riz à la fleur d’oranger']
 );
 entries.push(['quick_pearl','Schnelle Perle','Quick Pearl','Быстрый жемчуг','Perle rapide']);
+entries.push(
+ ['star','Stern','Star','Звезда','Étoile'],
+ ['quick_lemon','Schnelle Zitrone','Quick Lemon','Быстрый лимон','Citron rapide'],
+ ['advanced_lemon_incense','Verbessertes Zitronenräucherwerk','Advanced Lemon Incense','Улучшенное лимонное благовоние','Encens au citron amélioré']
+);
 const names=new Map(entries.map(([id,de,en,ru,fr])=>[id,{de,en,ru,fr}]));
 export function displayName(id,lang='de'){
   if(!id)return '';

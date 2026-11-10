@@ -58,13 +58,18 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   recipes.forEach(r => { items.add(r.output); Object.keys(r.ingredients).forEach(i=>items.add(i)); if(r.byproductYield && r.facility==='Woodland') items.add('wood_block'); if(r.byproductYield && r.facility==='Mine') items.add('mineral_sand'); });
   Object.keys(state.stock).filter(x=>x!=='coins').forEach(x=>items.add(x));
   Object.keys(state.targets).filter(x=>x!=='coins').forEach(x=>items.add(x));
+  const reserveEnabled=(state.priorities||[]).some(p=>p.id==='reserve'&&p.enabled);
+  const reserveTargets=reserveEnabled?(state.reserveTargets||{}):{};
+  Object.keys(reserveTargets).filter(x=>x!=='coins').forEach(x=>items.add(x));
   const dailyEnabled=(state.priorities||[]).some(p=>p.id==='daily'&&p.enabled);
   const daily=(state.daily||[]).filter(d=>d.item && Number(d.count)>0 && Number(d.quantity)>0);daily.forEach(d=>items.add(d.item));
   const itemIds = [...items].sort(); const itemIndex = Object.fromEntries(itemIds.map((v,i)=>[v,i]));
   const sales = itemIds.map((item,i)=>({item,var:`s${i}`,price:recipes.find(r=>r.output===item && r.sellCurrency==='coins')?.sellValue||0}));
   const lines = [], integer = [], electrical=[];
+  const reserveVars=Object.entries(reserveTargets).filter(([item,need])=>item!=='coins'&&Number(need)>0).map(([item,need],i)=>({item,need:Number(need),variable:`reserve${i}`}));
+  const reserveByItem=new Map(reserveVars.map(x=>[x.item,x]));
   const paceMode=!!state.paceMode;
-  const objectives = {coins:[],event:[],rv:[[1,paceMode?'pace':'progress']],wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
+  const objectives = {coins:[],event:[],rv:[[1,paceMode?'pace':'progress']],reserve:reserveVars.map(x=>[1/reserveVars.length,x.variable]),wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
   daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
   const fieldAbilities=new Map();
   recipes.forEach((r,i)=>{
@@ -145,6 +150,8 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     daily.forEach((d,j)=>{if(d.item===item)terms.push([-Number(d.quantity)/hours,`d${j}`])});
     const sale=sales[i]; if(sale.price) terms.push([-1,sale.var]);
     const rvNeed=Number(state.targets[item])||0;
+    const reserve=reserveByItem.get(item);
+    if(!paceMode&&reserve)lines.push(`reserveBalance${i}: ${expr([...terms,[-reserve.need/hours,reserve.variable]])} >= ${-(state.stock[item]||0)/hours}`);
     if(paceMode){const delta=(Number(state.stock[item])||0)-rvNeed;if(delta)terms.push([delta,'pace']);lines.push(`balance${i}: ${expr(terms)} >= 0`)}
     else{if(rvNeed)terms.push([-rvNeed/hours,'progress']);lines.push(`balance${i}: ${expr(terms)} >= ${-(state.stock[item]||0)/hours}`)}
     if(item==='wood_block') objectives.wood=terms.filter(([,n])=>n.startsWith('x'));
@@ -159,11 +166,15 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const coinIndex=order.indexOf('coins'), eventIndex=order.indexOf('event');
   for (let i=0;i<fixed.length;i++) {
     const item=fixed[i];
-    const allowEventTrade=item.key==='coins' && state.event && coinIndex>=0 && eventIndex>coinIndex && Number(state.eventCoinTolerance)>0;
-    const floor=allowEventTrade && item.value>0 ? item.value*(1-Math.min(1,Math.max(0,Number(state.eventCoinTolerance)))) : item.value;
+    const allowEventTrade=item.key==='coins' && state.event && coinIndex>=0 && eventIndex>coinIndex;
+    const reserveIndex=order.indexOf('reserve');
+    const currentIndex=objective==='workers'?order.length:order.indexOf(objective==='daily_priority'?'daily':objective);
+    const allowReserveTrade=item.key==='coins' && coinIndex>=0 && reserveIndex>coinIndex && reserveIndex<=currentIndex && reserveVars.length>0;
+    const tolerance=Math.max(allowEventTrade?Number(state.eventCoinTolerance)||0:0,allowReserveTrade?Number(state.reserveCoinTolerance??.1)||0:0);
+    const floor=item.value>0 ? item.value*(1-Math.min(1,Math.max(0,tolerance))) : item.value;
     lines.push(`priority${i}: ${expr(objectives[item.key])} >= ${floor-1e-7*Math.max(1,Math.abs(floor))}`);
   }
-  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',...(paceMode?[' 0 <= pace <= 3600']:[]),' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
+  const lp=['Maximize',` goal: ${expr(objectives[objective]||[])}`,'Subject To',...lines,'Bounds',' 0 <= progress <= 1',...reserveVars.map(r=>` 0 <= ${r.variable} <= 1`),...(paceMode?[' 0 <= pace <= 3600']:[]),' anchor = 0',...[...fieldAbilities.values()].map(v=>` 0 <= ${v} <= 1`),...[...climateModes.values()].map(m=>` 0 <= ${m.variable} <= 1`),...daily.map((d,i)=>` 0 <= d${i} <= ${dailyEnabled?Math.max(0,Math.floor(Number(d.count))):0}`),...(integer.length?['General',...integer]:[]),'End'].join('\n');
   return {lp,recipes,sales,objectives,electrical,daily};
 }
 
@@ -176,7 +187,7 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
     if (rv<12 || p.module<1 || p.module>5 || rv<MODULE_RV[p.module] || p.level>p.module || p.watts<=0 || p.watts>GENERATOR_WATTS[p.level]) throw Error('Stromnetz prüfen: RV-Level, Power Module, Generatoren oder Poles überschreiten die Freischaltung.');
   }
   const highs=await loadHighs(), fixed=[];
-  const goals=state.priorities.filter(p=>p.enabled).flatMap(p=>p.id==='daily'&&(state.daily||[]).some(d=>d.priority&&Number(d.count)>0)?['daily_priority','daily']:[p.id]);
+  const goals=state.priorities.filter(p=>p.enabled&&(p.id!=='reserve'||Object.values(state.reserveTargets||{}).some(n=>Number(n)>0))).flatMap(p=>p.id==='daily'&&(state.daily||[]).some(d=>d.priority&&Number(d.count)>0)?['daily_priority','daily']:[p.id]);
   if(goals.includes('daily')&&!(state.daily||[]).some(d=>Number(d.count)>0&&Number(d.quantity)>0)) throw Error('Bitte mindestens einen Eventauftrag eintragen.');
   if(!goals.length) throw Error('Bitte mindestens eine Priorität aktivieren.');
   if(goals.includes('rv') && !Object.values(state.targets).some(n=>n>0)) throw Error('Für RV-Level-up mindestens ein Zielmaterial eintragen.');

@@ -5255,7 +5255,7 @@
     "byproductYield": 0,
     "eventPoints": 0,
     "event": null,
-    "verified": false,
+    "verified": true,
     "source": "starfall_hammock.csv"
   },
   {
