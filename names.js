@@ -25,6 +25,21 @@ entries.push(
  ['quick_lemon','Schnelle Zitrone','Quick Lemon','Быстрый лимон','Citron rapide'],
  ['advanced_lemon_incense','Verbessertes Zitronenräucherwerk','Advanced Lemon Incense','Улучшенное лимонное благовоние','Encens au citron amélioré']
 );
+entries.push(
+ ['moondew_radish','Mondtau-Rettich','Moondew Radish','Редис лунной росы','Radis de rosée lunaire'],
+ ['waxing_moon_pepper','Zunehmender-Mond-Paprika','Waxing Moon Pepper','Перец растущей луны','Poivron de lune croissante'],
+ ['roasted_waxing_moon_pepper','Gerösteter Zunehmender-Mond-Paprika','Roasted Waxing Moon Pepper','Жареный перец растущей луны','Poivron de lune croissante rôti'],
+ ['moondew_radish_slices','Mondtau-Rettichscheiben','Moondew Radish Slices','Ломтики редиса лунной росы','Tranches de radis de rosée lunaire'],
+ ['umbral_hot_pot','Schatten-Feuertopf','Umbral Hot Pot','Теневой хот-пот','Marmite de l’ombre'],
+ ['umbral_sweet_and_spicy_sauce','Süß-scharfe Schattensoße','Umbral Sweet and Spicy Sauce','Сладко-острый теневой соус','Sauce sucrée et épicée de l’ombre'],
+ ['umbral_pickle','Eingelegtes Schattengemüse','Umbral Pickle','Маринованные овощи тени','Légumes marinés de l’ombre'],
+ ['harvest_platter','Ernteplatte','Harvest Platter','Урожайное ассорти','Plateau des récoltes'],
+ ['honey_glazed_pumpkin_cup','Honigglasierter Kürbisbecher','Honey-Glazed Pumpkin Cup','Тыквенный стаканчик с медовой глазурью','Coupe de citrouille glacée au miel'],
+ ['memory_lantern','Erinnerungslaterne','Memory Lantern','Фонарь воспоминаний','Lanterne des souvenirs'],
+ ['glowfruit_lantern_set','Leuchtfrucht-Laternenset','Glowfruit Lantern Set','Набор фонарей из светящихся плодов','Ensemble de lanternes aux fruits lumineux'],
+ ['gleam_fruit_nectar','Leuchtfruchtnektar','Gleam Fruit Nectar','Нектар сияющих плодов','Nectar de fruits étincelants'],
+ ['golden_lantern_pumpkin_soup','Goldene Laternen-Kürbissuppe','Golden Lantern Pumpkin Soup','Тыквенный суп золотого фонаря','Soupe de citrouille à la lanterne dorée']
+);
 const names=new Map(entries.map(([id,de,en,ru,fr])=>[id,{de,en,ru,fr}]));
 export function displayName(id,lang='de'){
   if(!id)return '';

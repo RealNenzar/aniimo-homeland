@@ -93,7 +93,7 @@ rows.push(
 ['Der angezeigte Plan kann wegen begrenzter Vorräte, Eventbudget oder einmaliger Aufträge nicht zuverlässig über den Planungszeitraum hinaus hochgerechnet werden.','The displayed plan cannot be reliably extrapolated beyond the planning period because inventory, event budget or one-off orders are limited.','Показанный план нельзя надёжно продлить за пределы периода из-за ограниченных запасов, бюджета события или разовых заказов.','Le plan affiché ne peut pas être extrapolé de manière fiable au-delà de la période à cause des stocks, du budget événement ou des commandes ponctuelles limités.'],
 ['Das RV-Ziel wird mit den berechneten Raten nicht vollständig erreicht.','The RV target is not fully reached at the calculated rates.','Цель RV не достигается при рассчитанных темпах.','L’objectif RV n’est pas entièrement atteint avec les cadences calculées.']
 );
-rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.20 · Letztes Update: 11.11.2026','Version 0.2.20 · Updated: 2026-11-11','Версия 0.2.20 · Обновлено: 11.11.2026','Version 0.2.20 · Mise à jour : 11/11/2026']);
+rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.21 · Letztes Update: 11.11.2026','Version 0.2.21 · Updated: 2026-11-11','Версия 0.2.21 · Обновлено: 11.11.2026','Version 0.2.21 · Mise à jour : 11/11/2026']);
 rows.push(['Berechnung abbrechen','Cancel calculation','Отменить расчёт','Annuler le calcul'],['Berechnung abgebrochen','Calculation cancelled','Расчёт отменён','Calcul annulé'],['Du kannst die Berechnung erneut starten.','You can start the calculation again.','Можно запустить расчёт снова.','Vous pouvez relancer le calcul.']);
 rows.push(
  ['Informationen','Information','Информация','Informations'],
@@ -161,6 +161,19 @@ dict['Vorhanden']={en:'Current',ru:'Имеется',fr:'Disponible'};
 dict['Ziel']={en:'Target',ru:'Цель',fr:'Objectif'};
 dict['Nach Plan']={en:'After plan',ru:'После плана',fr:'Après le plan'};
 dict['Der Zielwert zeigt den durchschnittlich erreichten Anteil über alle Materialien.']={en:'The goal is the average share reached across all materials.',ru:'Цель показывает среднюю долю выполнения по всем материалам.',fr:'L’objectif indique la part moyenne atteinte pour tous les matériaux.'};
+dict['Aniimo-Fähigkeiten (optional)']={en:'Aniimo abilities (optional)',ru:'Навыки Aniimo (необязательно)',fr:'Compétences Aniimo (facultatif)'};
+dict['Aniimo-Familien (optional)']={en:'Aniimo families (optional)',ru:'Семейства Aniimo (необязательно)',fr:'Familles d’Aniimo (facultatif)'};
+dict['Bilanz zum Upgrade']={en:'Balance at upgrade',ru:'Баланс к улучшению',fr:'Bilan au moment de l’amélioration'};
+dict['Bilanz nach Planungszeitraum']={en:'Balance after planning period',ru:'Баланс после периода планирования',fr:'Bilan après la période de planification'};
+dict['Rezepte ignorieren']={en:'Ignore recipes',ru:'Исключить рецепты',fr:'Ignorer des recettes'};
+dict['Rezept auswählen']={en:'Select recipe',ru:'Выберите рецепт',fr:'Choisir une recette'};
+dict['Wieder zulassen']={en:'Allow again',ru:'Разрешить снова',fr:'Autoriser à nouveau'};
+dict['Ausgewählte Rezepte werden nicht für die Berechnung verwendet.']={en:'Selected recipes are excluded from the calculation.',ru:'Выбранные рецепты исключаются из расчёта.',fr:'Les recettes sélectionnées sont exclues du calcul.'};
+dict['Event- und Kaufrezepte']={en:'Event and purchased recipes',ru:'Событийные и покупные рецепты',fr:'Recettes événementielles et achetées'};
+dict['Aktiviere gekaufte Rezeptnotizen, die du besitzt.']={en:'Enable the recipe notes you own.',ru:'Отметьте купленные записи рецептов.',fr:'Activez les notes de recettes que vous possédez.'};
+dict['Gebäude antippen für Details.']={en:'Select a facility for details.',ru:'Нажмите на здание для подробностей.',fr:'Touchez un bâtiment pour les détails.'};
+dict['Unabhängiges Fanprojekt · Spielgrafiken gehören ihren Rechteinhabern.']={en:'Independent fan project · Game artwork belongs to its rights holders.',ru:'Независимый фанатский проект · Права на игровую графику принадлежат их владельцам.',fr:'Projet de fans indépendant · Les illustrations du jeu appartiennent à leurs ayants droit.'};
+dict['Sprache']={en:'Language',ru:'Язык',fr:'Langue'};
 const jobGerman={Sowing:'Aussaat',Reaping:'Ernte',Reclaiming:'Boden vorbereiten',Planting:'Pflanzen',Logging:'Holzernte',Collecting:'Sammeln',Watering:'Bewässern'};
 export function translate(text,lang){return lang==='de'?(jobGerman[text]||text):(dict[text]?.[lang]||text)}
 const originalText=new WeakMap(), originalAttrs=new WeakMap();

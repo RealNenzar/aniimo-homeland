@@ -9,7 +9,7 @@ function balancesAfter(result,state){
 }
 export function upgradeBalance(result,state){
  const totals=balancesAfter(result,state);
- return Object.entries(state.targets||{}).filter(([,n])=>Number(n)>0).map(([item,n])=>({item,target:Number(n),available:Math.max(0,totals[item]||0),difference:(totals[item]||0)-Number(n)}));
+ return Object.entries(state.targets||{}).filter(([,n])=>Number(n)>0).map(([item,n])=>({item,target:Number(n),available:totals[item]||0,difference:(totals[item]||0)-Number(n)}));
 }
 export function upgradeForecast(result,state){
  const hours=Number(state.hours)||1,balances=upgradeBalance(result,state);if(!balances.length)return null;
