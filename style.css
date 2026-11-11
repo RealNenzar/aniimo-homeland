@@ -91,3 +91,7 @@ input,select{border-color:var(--line);border-radius:7px;padding:8px;color:var(--
 /* Keep all four work areas visible on phones without a horizontal scrollbar. */
 @media(max-width:720px){.tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;overflow:visible}.tabs button{min-width:0;padding:9px 3px;font-size:10px;white-space:normal;text-align:center}.tabs button span{display:block;margin:3px 0 0;overflow-wrap:anywhere}}
 @media(max-width:720px){.grid{grid-template-columns:minmax(0,1fr)}.grid>.card{min-width:0}label{overflow-wrap:anywhere}.header-actions{flex:none}}
+
+.share-dialog{width:min(680px,calc(100vw - 32px));max-height:90vh;overflow:auto;padding:24px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink)}
+.share-dialog::backdrop{background:rgba(0,0,0,.65)}
+.share-dialog label{display:block;margin:14px 0 8px}.share-dialog textarea{display:block;width:100%;min-height:66px;margin-top:6px;padding:10px;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;overflow-wrap:anywhere}.share-dialog hr{border:0;border-top:1px solid var(--line);margin:20px 0}.share-dialog .actions{display:flex;flex-wrap:wrap;gap:8px}.share-dialog #share-status:empty{display:none}

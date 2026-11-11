@@ -4,7 +4,7 @@ Browserbasierter, unabhängiger Produktionsplaner. **Beta: Datenstand und Modell
 
 ## Nutzung
 
-RV-Level wählen: Der Planer übernimmt die maximal verfügbaren Gebäude und deren höchste freigeschaltete Stufe. Unter „Gebäude anpassen“ lassen sich Anzahl und unterschiedliche Stufen korrigieren. Gekaufte Grundstücke, Module, Lagerbestand und Rezeptnotizen ergänzen. Ziele in der gewünschten Reihenfolge aktivieren und berechnen. Daten bleiben im Browser und lassen sich als JSON exportieren und importieren. Die Anwendung benötigt keine Anmeldung.
+RV-Level wählen: Der Planer übernimmt die maximal verfügbaren Gebäude und deren höchste freigeschaltete Stufe. Unter „Gebäude anpassen“ lassen sich Anzahl und unterschiedliche Stufen korrigieren. Gekaufte Grundstücke, Module, Lagerbestand und Rezeptnotizen ergänzen. Ziele in der gewünschten Reihenfolge aktivieren und berechnen. Daten bleiben im Browser und lassen sich als Link oder Code teilen. Ältere JSON-Dateien lassen sich weiterhin importieren. Geteilte Links enthalten die eingegebenen Planungsdaten im URL-Fragment; ein Server ist nicht nötig. Die Anwendung benötigt keine Anmeldung.
 
 Bei der Wahl eines RV-Levels werden die Zielwerte für das nächste Upgrade eingetragen. Sie können weiterhin geändert werden. Bei neuen Einstellungen sind RV-Level-up und Home Coins aktiv; vorhandene Prioritäten importierter Pläne bleiben erhalten. Die Rezeptansicht zeigt bekannte Kauf- und Eventrezepte. Gekaufte Rezeptnotizen müssen aktiviert werden; einzelne Rezepte lassen sich unter „Rezepte ignorieren“ ausschließen. Neu ergänzte Rezeptnotizen sind bei älteren Exporten zunächst nicht als gekauft markiert.
 

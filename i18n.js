@@ -93,7 +93,7 @@ rows.push(
 ['Der angezeigte Plan kann wegen begrenzter Vorräte, Eventbudget oder einmaliger Aufträge nicht zuverlässig über den Planungszeitraum hinaus hochgerechnet werden.','The displayed plan cannot be reliably extrapolated beyond the planning period because inventory, event budget or one-off orders are limited.','Показанный план нельзя надёжно продлить за пределы периода из-за ограниченных запасов, бюджета события или разовых заказов.','Le plan affiché ne peut pas être extrapolé de manière fiable au-delà de la période à cause des stocks, du budget événement ou des commandes ponctuelles limités.'],
 ['Das RV-Ziel wird mit den berechneten Raten nicht vollständig erreicht.','The RV target is not fully reached at the calculated rates.','Цель RV не достигается при рассчитанных темпах.','L’objectif RV n’est pas entièrement atteint avec les cadences calculées.']
 );
-rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.21 · Letztes Update: 11.11.2026','Version 0.2.21 · Updated: 2026-11-11','Версия 0.2.21 · Обновлено: 11.11.2026','Version 0.2.21 · Mise à jour : 11/11/2026']);
+rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.22 · Letztes Update: 11.11.2026','Version 0.2.22 · Updated: 2026-11-11','Версия 0.2.22 · Обновлено: 11.11.2026','Version 0.2.22 · Mise à jour : 11/11/2026']);
 rows.push(['Berechnung abbrechen','Cancel calculation','Отменить расчёт','Annuler le calcul'],['Berechnung abgebrochen','Calculation cancelled','Расчёт отменён','Calcul annulé'],['Du kannst die Berechnung erneut starten.','You can start the calculation again.','Можно запустить расчёт снова.','Vous pouvez relancer le calcul.']);
 rows.push(
  ['Informationen','Information','Информация','Informations'],
@@ -108,7 +108,7 @@ const dict=Object.fromEntries(rows.map(([de,en,ru,fr])=>[de,{en,ru,fr}]));
 const gameTerms=[['Grass','Pflanze','Grass','Растения','Plante'],['Ice','Eis','Ice','Лёд','Glace'],['Light','Licht','Light','Свет','Lumière'],['Hauling','Transport','Hauling','Перенос','Transport'],['Earth','Erde','Earth','Земля','Terre'],['Water','Wasser','Water','Вода','Eau'],['Leisure','Freizeit','Leisure','Досуг','Loisir'],['Artisanship','Handwerk','Artisanship','Ремесло','Artisanat'],['Perfumery','Parfümerie','Perfumery','Парфюмерия','Parfumerie'],['Wind','Wind','Wind','Ветер','Vent'],['Fire','Feuer','Fire','Огонь','Feu'],['Dark','Dunkel','Dark','Тьма','Ténèbres'],['Lightning','Blitz','Lightning','Молния','Foudre'],['Playful','Verspielt','Playful','Игривый','Joueur'],['Judicious','Besonnen','Judicious','Рассудительный','Judicieux'],['Faithful','Treu','Faithful','Верный','Fidèle'],['Instinctive','Instinktiv','Instinctive','Инстинктивный','Instinctif'],['Nimble','Flink','Nimble','Проворный','Agile'],['Tenacious','Hartnäckig','Tenacious','Упорный','Tenace'],['Practical','Praktisch','Practical','Практичный','Pratique'],['Energetic','Energisch','Energetic','Энергичный','Énergique']];
 export function gameTerm(text,lang){const row=gameTerms.find(r=>r[0]===text);return row?row[['de','en','ru','fr'].indexOf(lang)+1]||text:text;}
 Object.assign(dict,Object.fromEntries([
-['RV-Level-up','RV upgrade','Улучшение RV','Amélioration RV'],['Home Coins','Home Coins','Home Coins','Home Coins'],['Whimsy Points','Whimsy Points','Whimsy Points','Whimsy Points'],['Wood Blocks','Wood Blocks','Wood Blocks','Wood Blocks'],['Mineral Sand','Mineral Sand','Mineral Sand','Mineral Sand'],
+['RV-Level-up','RV upgrade','Улучшение RV','Amélioration RV'],['Home Coins','Home Coins','Home Coins','Home Coins'],['Whimsy Points','Whimsy Points','Whimsy Points','Whimsy Points'],['Wood Blocks','Wood Blocks','Деревянные блоки','Blocs de bois'],['Mineral Sand','Mineral Sand','Минеральный песок','Sable minéral'],
 ['/ Stunde','/ hour','/ час','/ heure'],['/ Std.','/ hr','/ ч','/ h'],['% des Ziels','% of target','% от цели','% de l’objectif'],['Gebäudezeit (abwechselnd)','facility time (shared)','время здания (по очереди)','temps de bâtiment (partagé)'],
 ['Modellrechnung: Holzbank und Ofen wechseln zwischen Rezepten; andere Gebäude sind je einem Rezept zugeordnet. Klima, Wege, Personalverfügbarkeit und Startzeiten werden nicht geprüft.','Model estimate: the woodworking bench and kiln alternate recipes; other facilities use one recipe each. Climate, travel, staff availability and startup times are not checked.','Модель: верстак и печь чередуют рецепты; остальные здания закреплены за одним рецептом. Климат, пути, рабочие и время запуска не проверяются.','Estimation : l’établi et le four alternent les recettes ; les autres bâtiments utilisent une recette chacun. Climat, trajets, personnel et temps de démarrage ne sont pas vérifiés.'],
 ['Materialbestände werden über den Zeitraum verteilt. Event-Punkte aus Möbeln und Aufträgen fehlen. Datenstand ist unvollständig.','Inventory is spread over the period. Event points from furniture and orders are excluded. The dataset is incomplete.','Запасы распределяются по периоду. Очки события за мебель и заказы не учтены. Данные неполные.','Les stocks sont répartis sur la période. Les points de meubles et commandes sont exclus. Les données sont incomplètes.'],
@@ -174,7 +174,43 @@ dict['Aktiviere gekaufte Rezeptnotizen, die du besitzt.']={en:'Enable the recipe
 dict['Gebäude antippen für Details.']={en:'Select a facility for details.',ru:'Нажмите на здание для подробностей.',fr:'Touchez un bâtiment pour les détails.'};
 dict['Unabhängiges Fanprojekt · Spielgrafiken gehören ihren Rechteinhabern.']={en:'Independent fan project · Game artwork belongs to its rights holders.',ru:'Независимый фанатский проект · Права на игровую графику принадлежат их владельцам.',fr:'Projet de fans indépendant · Les illustrations du jeu appartiennent à leurs ayants droit.'};
 dict['Sprache']={en:'Language',ru:'Язык',fr:'Langue'};
-const jobGerman={Sowing:'Aussaat',Reaping:'Ernte',Reclaiming:'Boden vorbereiten',Planting:'Pflanzen',Logging:'Holzernte',Collecting:'Sammeln',Watering:'Bewässern'};
+dict['ANIIMO · PRODUKTION']={en:'ANIIMO · PRODUCTION',ru:'ANIIMO · ПРОИЗВОДСТВО',fr:'ANIIMO · PRODUCTION'};
+dict['PLANER']={en:'PLANNER',ru:'ПЛАНИРОВЩИК',fr:'PLANIFICATEUR'};
+dict['Homeland Planer']={en:'Homeland Planner',ru:'Планировщик Homeland',fr:'Planificateur Homeland'};
+dict['Planungsbereiche']={en:'Planning sections',ru:'Разделы планирования',fr:'Sections de planification'};
+dict['Nächstes RV-Level']={en:'Next RV level',ru:'Следующий уровень RV',fr:'Niveau RV suivant'};
+dict['Dark Mode']={en:'Dark mode',ru:'Тёмная тема',fr:'Mode sombre'};
+dict['Power Module']={en:'Power Module',ru:'Энергомодуль',fr:'Module électrique'};
+dict['holz:8,wasser:2']={en:'wood_block:8,water:2',ru:'wood_block:8,water:2',fr:'wood_block:8,water:2'};
+dict['z. B. neues_rezept']={en:'e.g. new_recipe',ru:'например new_recipe',fr:'p. ex. new_recipe'};
+dict['Crackle Power Poles']={en:'Crackle Power Poles',ru:'Электроопоры Crackle',fr:'Poteaux électriques Crackle'};
+dict['Berechnung:']={en:'Calculation:',ru:'Расчёт:',fr:'Calcul :'};
+dict['Optimal']={en:'Optimal',ru:'Оптимально',fr:'Optimal'};
+dict['Time limit reached']={en:'Time limit reached',ru:'Достигнут лимит времени',fr:'Temps limite atteint'};
+dict['Infeasible']={en:'No feasible solution',ru:'Допустимое решение не найдено',fr:'Aucune solution réalisable'};
+dict['Unbounded']={en:'Unbounded solution',ru:'Неограниченное решение',fr:'Solution non bornée'};
+dict['Unknown']={en:'Unknown',ru:'Неизвестно',fr:'Inconnu'};
+dict['Fehlerstatus']={en:'Error status',ru:'Статус ошибки',fr:'Statut d’erreur'};
+dict['Event']={en:'Event',ru:'Событие',fr:'Événement'};
+dict['Plan teilen']={en:'Share plan',ru:'Поделиться планом',fr:'Partager le plan'};
+dict['Link oder Code kopieren']={en:'Copy link or code',ru:'Скопировать ссылку или код',fr:'Copier le lien ou le code'};
+dict['Link kopieren']={en:'Copy link',ru:'Скопировать ссылку',fr:'Copier le lien'};
+dict['Code kopieren']={en:'Copy code',ru:'Скопировать код',fr:'Copier le code'};
+dict['Plan aus Link oder Code laden']={en:'Load plan from link or code',ru:'Загрузить план по ссылке или коду',fr:'Charger le plan depuis un lien ou un code'};
+dict['Link oder Code einfügen']={en:'Paste link or code',ru:'Вставьте ссылку или код',fr:'Coller le lien ou le code'};
+dict['Plan laden']={en:'Load plan',ru:'Загрузить план',fr:'Charger le plan'};
+dict['Schließen']={en:'Close',ru:'Закрыть',fr:'Fermer'};
+dict['Link kopiert.']={en:'Link copied.',ru:'Ссылка скопирована.',fr:'Lien copié.'};
+dict['Code kopiert.']={en:'Code copied.',ru:'Код скопирован.',fr:'Code copié.'};
+dict['Kopieren nicht möglich. Text bitte manuell kopieren.']={en:'Copying failed. Please copy the text manually.',ru:'Не удалось скопировать. Скопируйте текст вручную.',fr:'Copie impossible. Copiez le texte manuellement.'};
+dict['Der Link oder Code ist ungültig.']={en:'The link or code is invalid.',ru:'Ссылка или код недействительны.',fr:'Le lien ou le code est invalide.'};
+dict['Link zu lang für manche Browser. Verwende den Code.']={en:'Link too long for some browsers. Use the code instead.',ru:'Ссылка слишком длинная для некоторых браузеров. Используйте код.',fr:'Lien trop long pour certains navigateurs. Utilisez le code.'};
+dict['Datei importieren (optional)']={en:'Import file (optional)',ru:'Импортировать файл (необязательно)',fr:'Importer un fichier (facultatif)'};
+dict['Teilen-Link']={en:'Share link',ru:'Ссылка для отправки',fr:'Lien de partage'};
+dict['Teilen-Code']={en:'Share code',ru:'Код для отправки',fr:'Code de partage'};
+dict['Der Link enthält deine eingegebenen Planungsdaten.']={en:'The link contains the planning data you entered.',ru:'Ссылка содержит введённые вами данные планирования.',fr:'Le lien contient les données de planification que vous avez saisies.'};
+dict['Plan konnte nicht geteilt werden.']={en:'The plan could not be shared.',ru:'Не удалось поделиться планом.',fr:'Le plan n’a pas pu être partagé.'};
+const jobGerman={'Event':'Ereignis','Power Module':'Energiemodul','Dark Mode':'Dunkelmodus','Crackle Power Poles':'Crackle-Strommasten','Time limit reached':'Zeitlimit erreicht','Infeasible':'Keine zulässige Lösung','Unbounded':'Unbeschränkte Lösung','Unknown':'Unbekannt','Wood Blocks':'Holzblöcke','Mineral Sand':'Mineralsand',Sowing:'Aussaat',Reaping:'Ernte',Reclaiming:'Boden vorbereiten',Planting:'Pflanzen',Logging:'Holzernte',Collecting:'Sammeln',Watering:'Bewässern'};
 export function translate(text,lang){return lang==='de'?(jobGerman[text]||text):(dict[text]?.[lang]||text)}
 const originalText=new WeakMap(), originalAttrs=new WeakMap();
 export function translatePage(root,lang){
