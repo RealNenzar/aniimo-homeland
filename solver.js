@@ -195,6 +195,12 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
 let highsInstance;
 function loadHighs(){return highsInstance ||= highsModule({print:()=>{},printErr:()=>{}}).catch(error=>{highsInstance=null;throw error});}
 function solutionRows(problem,result){return problem.recipes.map((r,i)=>{const rate=result.Columns[`x${i}`]?.Primal||0;const load=rate*speed(r,r.worker)/3600;return {recipe:r,rate,shared:shared.has(r.facility),units:shared.has(r.facility)?load:Math.min(result.Columns[`n${i}`]?.Primal||0,Math.ceil(load-1e-7))}}).filter(r=>r.rate>1e-6)}
+function solvedPower(problem,result,state){
+ const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
+ const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
+ const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
+ return {draw,generators,output:generators*(state.power?.watts||0)};
+}
 export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   if (state.power?.enabled) {
     const p=state.power, rv=Number(state.currentRv)||0;
@@ -218,7 +224,7 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   }
   // After lower priorities use their allowance, recover any coins still possible
   // without reducing those priorities. Only then minimize staffing.
-  const deferTieBreak=options.deferTieBreak?.(solutionRows(problem,result))===true;
+  const deferTieBreak=options.deferTieBreak?.(solutionRows(problem,result),solvedPower(problem,result,state))===true;
   let tieFixed=fixed;
   const coinGoal=fixed.find(g=>g.key==='coins');
   const actualCoins=coinGoal?(problem.objectives.coins||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0):0;
@@ -231,8 +237,5 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   }
   // Among plans with the same prioritized result, prefer fewer staffed stations.
   if(state.autoWorkers&&!deferTieBreak&&hasTime()){onProgress('workers');const alternative=model(catalog,state,tieFixed,'workers'), solved=highs.solve(alternative.lp,solveOptions());if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
-  const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
-  const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
-  const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;
-  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:{draw,generators,output:generators*(state.power?.watts||0)},rows:solutionRows(problem,result),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
+  return {goals:fixed.map(g=>({...g,maximum:g.value,value:(problem.objectives[g.key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0)})),daily:problem.daily.map((d,i)=>({...d,completed:Math.round(result.Columns[`d${i}`]?.Primal||0)})),power:solvedPower(problem,result,state),rows:solutionRows(problem,result),sales:problem.sales.map(s=>({...s,rate:result.Columns[s.var]?.Primal||0})).filter(s=>s.rate>1e-6)};
 }

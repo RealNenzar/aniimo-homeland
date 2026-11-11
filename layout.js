@@ -20,7 +20,7 @@ function stackedTemperature(a,b){return temperatureModes.has(a)&&temperatureMode
 const plotOrigins = new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
 function globalRect(p) {const origin=plotOrigins.get(p.plot);return {...p,x:origin.x+p.x,y:origin.y+p.y};}
 
-export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
+export function layoutPlan(rows, boughtPlots, {storage=false,previous=[]}={}) {
   const count=Math.max(1,Math.min(16,Number(boughtPlots)||1));
   const plots=Array.from({length:count},()=>Array.from({length:PLOT_HEIGHT},()=>new Uint8Array(PLOT_WIDTH)));
   const climateByPlot=Array.from({length:count},()=>new Set());
@@ -31,7 +31,29 @@ export function layoutPlan(rows, boughtPlots, {storage=false}={}) {
   if(storage&&rows.length)objects.push({name:'Storage Unit',recipe:'',environment:'',level:1,electric:false,infrastructure:true});
   objects.sort((a,b)=>{const x=FOOTPRINTS[a.name]||[2,2],y=FOOTPRINTS[b.name]||[2,2];return Number(b.infrastructure)-Number(a.infrastructure)||Number(b.electric)-Number(a.electric)||(a.environment||'').localeCompare(b.environment||'')||y[0]*y[1]-x[0]*x[1]});
   const placed=[];
-  for(const item of objects){
+  const used=new Set();
+  // Keep exact recipe matches first, then permit the same kind of facility to
+  // retain its position for a different recipe with identical climate needs.
+  // Old positions are suggestions only and are validated against the new grid.
+  const tryPrevious=(item,p)=>{
+    const size=FOOTPRINTS[item.name];if(!size||!Number.isInteger(p.plot)||p.plot<1||p.plot>count||!Number.isInteger(p.x)||!Number.isInteger(p.y))return false;
+    const w=Math.ceil(size[0]*GRID_SCALE),h=Math.ceil(size[1]*GRID_SCALE),pi=p.plot-1;
+    if(p.w!==w||p.h!==h||p.x<0||p.y<0||p.x+w>PLOT_WIDTH||p.y+h>PLOT_HEIGHT)return false;
+    // A plot can hold separate climate zones. Actual coverage and conflicts
+    // are validated after anchoring, rather than rejecting the entire plot.
+    for(let y=p.y;y<p.y+h;y++)for(let x=p.x;x<p.x+w;x++)if(plots[pi][y][x])return false;
+    if((item.name==='Mine'||item.name==='Well')&&placed.some(q=>!mineWellClearance(globalRect({...item,plot:p.plot,x:p.x,y:p.y,w,h}),globalRect(q))))return false;
+    for(let y=p.y;y<p.y+h;y++)plots[pi][y].fill(1,p.x,p.x+w);
+    placed.push({...item,plot:p.plot,x:p.x,y:p.y,w,h});if(item.environment)climateByPlot[pi].add(item.environment);return true;
+  };
+  const old=Array.isArray(previous)?previous.filter(p=>p&&typeof p==='object'):[],oldUsed=new Set();
+  for(const exact of [true,false])for(const p of old){
+    if(p.infrastructure||oldUsed.has(p))continue;
+    const index=objects.findIndex((item,i)=>!used.has(i)&&item.name===p.name&&(!exact||item.recipe===p.recipe)&&(item.environment||'')===(p.environment||''));
+    if(index>=0&&tryPrevious(objects[index],p)){used.add(index);oldUsed.add(p)}
+  }
+  for(const [index,item] of objects.entries()){
+    if(used.has(index))continue;
     const size=FOOTPRINTS[item.name];if(!size){unplaced.push(item);continue}
     const w=Math.ceil(size[0]*GRID_SCALE), h=Math.ceil(size[1]*GRID_SCALE);let found=false;
     const mode=item.environment||'';
@@ -83,6 +105,11 @@ export function placeClimate(layout, rv, definitions) {
     }
     remaining.push(...targets.filter(t=>!nodes.some(n=>n.mode===mode&&inRange(n,t))));
   }
+  // Remove devices that no longer contribute after the greedy placement.
+  // Each remaining device is necessary for at least one covered target.
+  for(let i=nodes.length-1;i>=0;i--){const n=nodes[i],other=nodes.filter((_,j)=>j!==i);
+    if(objects.filter(t=>t.environment===n.mode&&inRange(n,t)).every(t=>other.some(o=>o.mode===n.mode&&inRange(o,t))))nodes.splice(i,1);
+  }
   return {placed:nodes.map(n=>({...n,x:n.localX,y:n.localY})),uncovered:remaining.map(t=>({name:t.name,recipe:t.recipe,environment:t.environment})),complete:remaining.length===0};
 }
 
@@ -93,13 +120,29 @@ export function powerReachesNode(source, target) {
          source.y+source.radius>target.y-target.h/2 && source.y-source.radius<target.y+target.h/2;
 }
 
-export function placePower(layout, generatorCount, poleCap) {
+export function placePower(layout, generatorCount, poleCap, {preservePositions=false,previousNodes=[]}={}) {
   const position=new Map(PLOT_GRID.flatMap((row,y)=>row.map((n,x)=>[n,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
   const occupied=new Set();
   const key=(x,y)=>`${x},${y}`;
   for(const p of layout.placed){const origin=position.get(p.plot);for(let y=0;y<p.h;y++)for(let x=0;x<p.w;x++)occupied.add(key(origin.x+p.x+x,origin.y+p.y+y));}
   const targets=layout.placed.filter(p=>p.electric).map(p=>{const o=position.get(p.plot);return {...p,source:p,gx:o.x+p.x,gy:o.y+p.y}});
   const nodes=[];let generatorsPlaced=0;
+  // Seed only a fully connected, collision-free earlier network. Additional
+  // poles may then be added for newly electric facilities without moving it.
+  const priorNodes=Array.isArray(previousNodes)?previousNodes:[];
+  if(priorNodes.length){
+    const initial=priorNodes.filter(p=>p&&['Crackle Generator','Crackle Power Pole'].includes(p.name));
+    const gens=initial.filter(p=>p.name==='Crackle Generator'),oldPoles=initial.filter(p=>p.name==='Crackle Power Pole');
+    const reserved=new Set();let valid=gens.length===generatorCount&&oldPoles.length<=poleCap&&(generatorCount>0||initial.length===0);
+    const seed=[];
+    for(const p of [...gens,...oldPoles]){const size=p.name==='Crackle Generator'?8:6,o=position.get(p.plot);
+      if(!o||p.plot>layout.plots||!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.w!==size||p.h!==size||p.x<0||p.y<0||p.x+size>PLOT_WIDTH||p.y+size>PLOT_HEIGHT){valid=false;break}
+      for(let y=0;y<size;y++)for(let x=0;x<size;x++){const k=key(o.x+p.x+x,o.y+p.y+y);if(occupied.has(k)||reserved.has(k))valid=false;reserved.add(k)}
+      seed.push({...p,plot:p.plot,localX:p.x,localY:p.y,x:o.x+p.x+size/2,y:o.y+p.y+size/2,w:size,h:size,radius:p.name==='Crackle Generator'?22:14});
+    }
+    if(valid&&seed.length){const connected=new Set(seed.flatMap((n,i)=>n.name==='Crackle Generator'?[i]:[]));let changed=true;while(changed){changed=false;for(let i=0;i<seed.length;i++)if(!connected.has(i)&&[...connected].some(j=>powerReachesNode(seed[j],seed[i]))){connected.add(i);changed=true}}valid=connected.size===seed.length}
+    if(valid){nodes.push(...seed);generatorsPlaced=gens.length;for(const k of reserved)occupied.add(k)}
+  }
   const touches=(node,t)=>node.x+node.radius>t.gx && node.x-node.radius<t.gx+t.w && node.y+node.radius>t.gy && node.y-node.radius<t.gy+t.h;
   const uncovered=()=>targets.filter(t=>!nodes.some(n=>touches(n,t)));
   function choose(size,radius,mustConnect){
@@ -119,7 +162,7 @@ export function placePower(layout, generatorCount, poleCap) {
     if(best){const o=position.get(best.plot);for(let y=0;y<size;y++)for(let x=0;x<size;x++)occupied.add(key(o.x+best.localX+x,o.y+best.localY+y));nodes.push(best)}
     return best;
   }
-  for(let i=0;i<generatorCount;i++){const p=choose(8,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
+  for(let i=generatorsPlaced;i<generatorCount;i++){const p=choose(8,22,nodes.length>0);if(!p)break;p.name='Crackle Generator';p.recipe='Power';generatorsPlaced++}
   // Move uncovered electric facilities into unused powered space when possible.
   // Climate-dependent facilities stay in place so their growing conditions cannot change.
   function moveUncovered(){
@@ -185,12 +228,13 @@ export function placePower(layout, generatorCount, poleCap) {
     }
     return false;
   }
-  let poles=0;
-  if(generatorsPlaced===generatorCount)moveUncovered();
+  let poles=nodes.filter(n=>n.name==='Crackle Power Pole').length;
+  if(generatorsPlaced===generatorCount&&!preservePositions)moveUncovered();
   while(generatorsPlaced===generatorCount && nodes.length && uncovered().length && poles<poleCap){
     let p=choose(6,14,true);if(!p && makeRoomForPole())p=choose(6,14,true);if(!p)break;p.name='Crackle Power Pole';p.recipe='Power';poles++;
-    moveUncovered();
+    if(!preservePositions)moveUncovered();
   }
+  if(preservePositions&&generatorsPlaced===generatorCount&&uncovered().length)moveUncovered();
   // Remove poles that do not contribute to coverage or to the connected network.
   {
     const covered=targets.filter(t=>nodes.some(n=>touches(n,t)));
@@ -201,7 +245,9 @@ export function placePower(layout, generatorCount, poleCap) {
     };
     for(let i=nodes.length-1;i>=0;i--)if(nodes[i].name==='Crackle Power Pole'&&connected(nodes.filter((_,j)=>j!==i))){nodes.splice(i,1);poles--}
   }
-  return {placed:nodes.map(n=>({...n,x:n.localX,y:n.localY})),generatorsPlaced,poles,uncovered:uncovered().length,complete:generatorsPlaced===generatorCount && uncovered().length===0};
+  const placed=nodes.map(n=>({...n,x:n.localX,y:n.localY}));
+  const reusedNodes=placed.filter(p=>priorNodes.some(q=>q&&q.name===p.name&&q.plot===p.plot&&q.x===p.x&&q.y===p.y)).length;
+  return {placed,generatorsPlaced,poles,uncovered:uncovered().length,complete:generatorsPlaced===generatorCount && uncovered().length===0,reusedNodes};
 }
 
 // Clip a centered coverage square to each plot, including across plot boundaries.
@@ -281,4 +327,84 @@ export function placeStorage(layout, limit){
   if(!best)break;const o=pos.get(best.plot);for(let y=0;y<8;y++)for(let x=0;x<8;x++)used.add(key(o.x+best.x+x,o.y+best.y+y));stores.push({...best,name:'Storage Unit',recipe:'',w:8,h:8,level:1,electric:false,infrastructure:true});
  }
  return stores;
+}
+
+// A complete earlier network may still fit after an order change. Reuse it
+// only after independently checking footprint, connectivity and all coverage.
+function reuseInfrastructure(layout,old,rv,definitions,generatorCount,poleCap,storageLimit){
+ if(layout.unplaced.length)return null;
+ const climateTypes={Scorching:'Heat Furnace',Warm:'Heat Furnace',Freeze:'Cooling Unit',Cool:'Cooling Unit',Adequate:'Sunlamp'};
+ const climate=old.filter(p=>['Heat Furnace','Cooling Unit','Sunlamp'].includes(p.name)).map(p=>({...p,mode:p.mode||p.recipe,infrastructure:true}));
+ const generators=old.filter(p=>p.name==='Crackle Generator').map(p=>({...p,infrastructure:true}));
+ const poles=old.filter(p=>p.name==='Crackle Power Pole').map(p=>({...p,infrastructure:true}));
+ const stores=old.filter(p=>p.name==='Storage Unit').slice(0,Math.max(0,storageLimit)).map(p=>({...p,infrastructure:true}));
+ if(generators.length!==generatorCount||poles.length>poleCap)return null;
+ const devices=[...climate,...generators,...poles,...stores];
+ for(const p of devices){const size=p.name==='Cooling Unit'||p.name==='Crackle Generator'||p.name==='Storage Unit'?8:p.name==='Crackle Power Pole'?6:4;
+  if(!Number.isInteger(p.plot)||p.plot<1||p.plot>layout.plots||!Number.isInteger(p.x)||!Number.isInteger(p.y)||p.w!==size||p.h!==size||p.x<0||p.y<0||p.x+size>PLOT_WIDTH||p.y+size>PLOT_HEIGHT)return null;
+ }
+ const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+ const all=[...layout.placed,...devices].map(globalRect);
+ for(let i=0;i<all.length;i++)for(let j=i+1;j<all.length;j++)if(overlap(all[i],all[j]))return null;
+ const area=p=>{const a=globalRect(p);return {x:a.x+a.w/2-18,y:a.y+a.h/2-18,w:36,h:36}};
+ for(const n of climate){
+  if(climateTypes[n.mode]!==n.name)return null;
+  const def=definitions.find(d=>d.name===n.name),cap=def&&rv>=Number(def.unlocks['1'])?(def.counts[Math.min(rv-1,def.counts.length-1)]||0):0;
+  if(climate.filter(p=>p.name===n.name).length>cap)return null;
+  if(layout.placed.some(p=>climateConflict(p.environment,n.mode)&&overlap(globalRect(p),area(n))))return null;
+  if(climate.some(p=>p!==n&&stackedTemperature(p.mode,n.mode)&&overlap(area(p),area(n))))return null;
+ }
+ if(layout.placed.some(p=>climateTypes[p.environment]&&!climate.some(n=>n.mode===p.environment&&overlap(globalRect(p),area(n)))))return null;
+ // Prune a climate device only when every one of its targets stays covered.
+ for(let i=climate.length-1;i>=0;i--){const n=climate[i];if(layout.placed.filter(p=>p.environment===n.mode&&overlap(globalRect(p),area(n))).every(p=>climate.some((o,j)=>j!==i&&o.mode===n.mode&&overlap(globalRect(p),area(o)))))climate.splice(i,1)}
+ const climateResult={placed:climate,uncovered:[],complete:true};
+ layout.placed.push(...climate,...stores);
+ const grid=placePower(layout,generatorCount,poleCap,{preservePositions:true,previousNodes:[...generators,...poles]});
+ if(!grid.complete)return null;
+ layout.placed.push(...grid.placed);
+ const additional=placeStorage(layout,Math.max(0,storageLimit-stores.length));
+ layout.placed.push(...additional);
+ return {layout,climate:climateResult,grid,storages:[...stores,...additional]};
+}
+
+// Prefer previous positions only after independent placement and coverage checks.
+// Solver climate reconciliation and final rendering call this same function.
+export function stableLayoutPlan(rows,boughtPlots,{previous=[],rv=1,definitions=[],generatorCount=0,poleCap=0,storageLimit=0}={}){
+ const old=Array.isArray(previous)?previous.filter(p=>p&&typeof p==='object'):[];
+ let replay=null;
+ if(old.length){
+  const anchored=layoutPlan(rows,boughtPlots,{previous:old});
+  replay=reuseInfrastructure(anchored,old,rv,definitions,generatorCount,poleCap,storageLimit);
+ }
+ const build=(reuse)=>{
+  const layout=layoutPlan(rows,boughtPlots,{previous:reuse?old:[]});
+  const climate=reuse?placeClimate(layout,rv,definitions):packClimate(layout,rv,definitions);
+  layout.placed.push(...climate.placed);
+  const grid=placePower(layout,generatorCount,poleCap,{preservePositions:reuse});layout.placed.push(...grid.placed);
+  const storages=placeStorage(layout,storageLimit);layout.placed.push(...storages);
+  return {layout,climate,grid,storages};
+ };
+ const baseline=build(false);if(!old.length)return {...baseline,stability:{usedPrevious:false,preserved:0,exact:0}};
+ const candidate=build(true);
+ // Never swap which facilities are missing coverage in an incomplete plan:
+ // only select the stable candidate when it is fully placed and supplied.
+ const safe=result=>result&&result.layout.unplaced.length===0&&result.climate.complete&&result.grid.complete&&
+  result.layout.unplaced.length<=baseline.layout.unplaced.length&&
+  result.climate.uncovered.length<=baseline.climate.uncovered.length&&
+  result.grid.uncovered<=baseline.grid.uncovered&&result.grid.generatorsPlaced>=baseline.grid.generatorsPlaced&&
+  result.storages.length>=baseline.storages.length;
+ const production=p=>!p.infrastructure&&!['Crackle Generator','Crackle Power Pole','Storage Unit'].includes(p.name);
+ const match=result=>{const remaining=old.slice();let preserved=0,exact=0,total=0;
+  for(const p of result.layout.placed){
+   const idx=remaining.findIndex(q=>q.name===p.name&&q.plot===p.plot&&q.x===p.x&&q.y===p.y);
+   if(idx>=0){total++;if(production(p)){preserved++;if(remaining[idx].recipe===p.recipe)exact++}remaining.splice(idx,1)}
+  }
+  return {preserved,exact,total};
+ };
+ let best=baseline,bestMatch=match(baseline),usedPrevious=false;
+ for(const option of [replay,candidate])if(safe(option)){
+  const next=match(option);
+  if(next.total>bestMatch.total||next.total===bestMatch.total&&next.exact>bestMatch.exact){best=option;bestMatch=next;usedPrevious=true}
+ }
+ return {...best,stability:{usedPrevious,...bestMatch,infrastructureReused:best===replay}};
 }
