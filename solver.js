@@ -201,6 +201,8 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
     if (rv<12 || p.module<1 || p.module>5 || rv<MODULE_RV[p.module] || p.level>p.module || p.watts<=0 || p.watts>GENERATOR_WATTS[p.level]) throw Error('Stromnetz prüfen: RV-Level, Power Module, Generatoren oder Poles überschreiten die Freischaltung.');
   }
   const highs=await loadHighs(), fixed=[];
+  const solveOptions=()=>{const remaining=options.deadline?(options.deadline-Date.now())/1000:Infinity;if(remaining<=0)throw Error('Berechnung: Time limit reached');return {time_limit:Math.max(.05,Math.min(options.solveTimeLimit||30,remaining)),mip_rel_gap:.001}};
+  const hasTime=()=>!options.deadline||Date.now()<options.deadline;
   const goals=state.priorities.filter(p=>p.enabled&&(p.id!=='reserve'||Object.values(state.reserveTargets||{}).some(n=>Number(n)>0))).flatMap(p=>p.id==='daily'&&(state.daily||[]).some(d=>d.priority&&Number(d.count)>0)?['daily_priority','daily']:[p.id]);
   if(goals.includes('daily')&&!(state.daily||[]).some(d=>Number(d.count)>0&&Number(d.quantity)>0)) throw Error('Bitte mindestens einen Eventauftrag eintragen.');
   if(!goals.length) throw Error('Bitte mindestens eine Priorität aktivieren.');
@@ -209,7 +211,7 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   for(const key of goals){
     if(key==='daily'&&fixed.at(-1)?.key==='daily_priority'&&(state.daily||[]).filter(d=>d.item&&Number(d.count)>0&&Number(d.quantity)>0).every(d=>d.priority)){const prev=fixed.at(-1);fixed.push({key,value:prev.value,status:prev.status});continue}
     onProgress(key); problem=model(catalog,state,fixed,key);
-    result=highs.solve(problem.lp,{time_limit:30,mip_rel_gap:0.001});
+    result=highs.solve(problem.lp,solveOptions());
     if(!result.Columns || !['Optimal','Time limit reached'].includes(result.Status)) throw Error(`Berechnung: ${result.Status || 'kein Ergebnis'}`);
     const value=(problem.objectives[key]||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0);
     fixed.push({key,value,status:result.Status});
@@ -220,15 +222,15 @@ export async function optimize(catalog,state,onProgress=()=>{},options={}) {
   let tieFixed=fixed;
   const coinGoal=fixed.find(g=>g.key==='coins');
   const actualCoins=coinGoal?(problem.objectives.coins||[]).reduce((n,[c,v])=>n+c*(result.Columns[v]?.Primal||0),0):0;
-  if(!deferTieBreak&&coinGoal&&actualCoins<coinGoal.value-1e-5){
-    onProgress('coins');const recovery=model(catalog,state,fixed,'coin_recovery'),solved=highs.solve(recovery.lp,{time_limit:30,mip_rel_gap:.001});
+  if(!deferTieBreak&&coinGoal&&actualCoins<coinGoal.value-1e-5&&hasTime()){
+    onProgress('coins');const recovery=model(catalog,state,fixed,'coin_recovery'),solved=highs.solve(recovery.lp,solveOptions());
     if(solved.Columns&&solved.Status==='Optimal'){
       const recovered=recovery.objectives.coins.reduce((n,[c,v])=>n+c*(solved.Columns[v]?.Primal||0),0);
       if(recovered+1e-5>=actualCoins){problem=recovery;result=solved;tieFixed=[...fixed,{key:'coins',value:recovered,strict:true}];}
     }
   }
   // Among plans with the same prioritized result, prefer fewer staffed stations.
-  if(state.autoWorkers&&!deferTieBreak){onProgress('workers');const alternative=model(catalog,state,tieFixed,'workers'), solved=highs.solve(alternative.lp,{time_limit:30,mip_rel_gap:.001});if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
+  if(state.autoWorkers&&!deferTieBreak&&hasTime()){onProgress('workers');const alternative=model(catalog,state,tieFixed,'workers'), solved=highs.solve(alternative.lp,solveOptions());if(solved.Columns && solved.Status==='Optimal'){problem=alternative;result=solved;}}
   const draw=problem.electrical.reduce((sum,[w,n])=>sum+w*(result.Columns[n]?.Primal||0),0);
   const efficiency=Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100));
   const generators=draw?Math.ceil(draw*efficiency/state.power.watts-1e-9):0;

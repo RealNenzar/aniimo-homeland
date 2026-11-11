@@ -93,7 +93,7 @@ rows.push(
 ['Der angezeigte Plan kann wegen begrenzter Vorräte, Eventbudget oder einmaliger Aufträge nicht zuverlässig über den Planungszeitraum hinaus hochgerechnet werden.','The displayed plan cannot be reliably extrapolated beyond the planning period because inventory, event budget or one-off orders are limited.','Показанный план нельзя надёжно продлить за пределы периода из-за ограниченных запасов, бюджета события или разовых заказов.','Le plan affiché ne peut pas être extrapolé de manière fiable au-delà de la période à cause des stocks, du budget événement ou des commandes ponctuelles limités.'],
 ['Das RV-Ziel wird mit den berechneten Raten nicht vollständig erreicht.','The RV target is not fully reached at the calculated rates.','Цель RV не достигается при рассчитанных темпах.','L’objectif RV n’est pas entièrement atteint avec les cadences calculées.']
 );
-rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.22 · Letztes Update: 11.11.2026','Version 0.2.22 · Updated: 2026-11-11','Версия 0.2.22 · Обновлено: 11.11.2026','Version 0.2.22 · Mise à jour : 11/11/2026']);
+rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.23 · Letztes Update: 11.11.2026','Version 0.2.23 · Updated: 2026-11-11','Версия 0.2.23 · Обновлено: 11.11.2026','Version 0.2.23 · Mise à jour : 11/11/2026']);
 rows.push(['Berechnung abbrechen','Cancel calculation','Отменить расчёт','Annuler le calcul'],['Berechnung abgebrochen','Calculation cancelled','Расчёт отменён','Calcul annulé'],['Du kannst die Berechnung erneut starten.','You can start the calculation again.','Можно запустить расчёт снова.','Vous pouvez relancer le calcul.']);
 rows.push(
  ['Informationen','Information','Информация','Informations'],
@@ -210,6 +210,17 @@ dict['Teilen-Link']={en:'Share link',ru:'Ссылка для отправки',f
 dict['Teilen-Code']={en:'Share code',ru:'Код для отправки',fr:'Code de partage'};
 dict['Der Link enthält deine eingegebenen Planungsdaten.']={en:'The link contains the planning data you entered.',ru:'Ссылка содержит введённые вами данные планирования.',fr:'Le lien contient les données de planification que vous avez saisies.'};
 dict['Plan konnte nicht geteilt werden.']={en:'The plan could not be shared.',ru:'Не удалось поделиться планом.',fr:'Le plan n’a pas pu être partagé.'};
+dict['Planer']={en:'Planner',ru:'Планировщик',fr:'Planificateur'};
+dict['Home-Season']={en:'Home Season',ru:'Домашний сезон',fr:'Saison du foyer'};
+dict['Home-Season-Event spielen']={en:'Play the Home Season event',ru:'Участвовать в домашнем событии',fr:'Participer à l’événement de saison'};
+dict['Welche täglichen Aufgaben erledigst du?']={en:'Which daily tasks do you complete?',ru:'Какие ежедневные задания вы выполняете?',fr:'Quelles tâches quotidiennes accomplissez-vous ?'};
+dict['Je ausgewählter täglicher Aufgabe rechnet der Plan mit 200 Weird Jelly Beans pro Tag. Anfangsbestand und Zeitpunkt der Belohnungen sind nicht bekannt; der Plan verwendet einen Tagesdurchschnitt.']={en:'Each selected daily task contributes 200 Weird Jelly Beans per day. Starting balance and reward timing are unknown; the plan uses a daily average.',ru:'Каждое выбранное ежедневное задание даёт 200 Weird Jelly Beans в день. Начальный запас и время наград неизвестны; расчёт использует среднее за день.',fr:'Chaque tâche quotidienne sélectionnée rapporte 200 Weird Jelly Beans par jour. Le stock initial et l’heure des récompenses sont inconnus ; le calcul utilise une moyenne quotidienne.'};
+dict['Produktionsraten']={en:'Production rates',ru:'Скорость производства',fr:'Cadences de production'};
+dict['Ausstoß vor Verbrauch durch andere Rezepte, Aufträge und Verkauf.']={en:'Gross output before use in other recipes, orders and sales.',ru:'Валовый выпуск до расхода на другие рецепты, заказы и продажу.',fr:'Production brute avant utilisation dans les autres recettes, commandes et ventes.'};
+dict['Pro Minute']={en:'Per minute',ru:'В минуту',fr:'Par minute'};
+dict['Pro Stunde']={en:'Per hour',ru:'В час',fr:'Par heure'};
+dict['Pro Tag']={en:'Per day',ru:'В день',fr:'Par jour'};
+dict['Die automatische RV-Dauer konnte innerhalb der Berechnungsgrenzen nicht bestätigt werden.']={en:'The automatic RV completion time could not be confirmed within the calculation limits.',ru:'Автоматическое время улучшения RV не удалось подтвердить в пределах расчёта.',fr:'Le délai automatique d’amélioration RV n’a pas pu être confirmé dans les limites du calcul.'};
 const jobGerman={'Event':'Ereignis','Power Module':'Energiemodul','Dark Mode':'Dunkelmodus','Crackle Power Poles':'Crackle-Strommasten','Time limit reached':'Zeitlimit erreicht','Infeasible':'Keine zulässige Lösung','Unbounded':'Unbeschränkte Lösung','Unknown':'Unbekannt','Wood Blocks':'Holzblöcke','Mineral Sand':'Mineralsand',Sowing:'Aussaat',Reaping:'Ernte',Reclaiming:'Boden vorbereiten',Planting:'Pflanzen',Logging:'Holzernte',Collecting:'Sammeln',Watering:'Bewässern'};
 export function translate(text,lang){return lang==='de'?(jobGerman[text]||text):(dict[text]?.[lang]||text)}
 const originalText=new WeakMap(), originalAttrs=new WeakMap();
