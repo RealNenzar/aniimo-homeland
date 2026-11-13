@@ -222,6 +222,11 @@ entries.push(
  ["quick_maple_syrup", "Schneller Ahornsirup", "Quick Maple Syrup", "Быстрый кленовый сироп", "Sirop d’érable rapide"]
 );
 entries.push(['ginseng_powder','Ginsengpulver','Ginseng Powder','Порошок женьшеня','Poudre de ginseng']);
+entries.push(
+ ['pearl_powder','Perlenpulver','Pearl Powder','Жемчужный порошок','Poudre de perle'],
+ ['star_diamond','Sterndiamant','Star Diamond','Звёздный бриллиант','Diamant étoilé'],
+ ['pearl_face_cream','Perlen-Gesichtscreme','Pearl Face Cream','Жемчужный крем для лица','Crème visage à la perle']
+);
 const names=new Map(entries.map(([id,de,en,ru,fr])=>[id,{de,en,ru,fr}]));
 export function displayName(id,lang='de'){
   if(!id)return '';

@@ -160,12 +160,12 @@ natural_mineral_spring_water, Well, Water, 3
 quick_natural_mineral_spring_water, Well, Water, 3
 rough_lumber, Woodworking Bench, Artisanship, 2
 standard_planks, Woodworking Bench, Artisanship, 2
-laminated_beams, Woodworking Bench, Artisanship, 2
-densified_timber_component, Woodworking Bench, Artisanship, 2
+laminated_beams, Woodworking Bench, Artisanship, 3
+densified_timber_component, Woodworking Bench, Artisanship, 3
 coarse_sifted_ore, Chimney Kiln, Fire, 2
 sintered_ore_brick, Chimney Kiln, Fire, 2
-refined_ore, Chimney Kiln, Fire, 2
-microcrystalline_ore_plate, Chimney Kiln, Fire, 2
+refined_ore, Chimney Kiln, Fire, 3
+microcrystalline_ore_plate, Chimney Kiln, Fire, 3
 growth_bud, Dance Pad Polisher, Lightning, 1
 growth_flower, Dance Pad Polisher, Lightning, 2
 growth_fruit, Dance Pad Polisher, Lightning, 3
@@ -173,10 +173,10 @@ aniipod, Aniipod Maker, Lightning, 1
 aniipod_pro, Aniipod Maker, Lightning, 2
 aniipod_mega, Aniipod Maker, Lightning, 3
 roasted_waxing_moon_pepper, Claw Game Cooker, Fire, 3
-moondew_radish_slices, Blazing Stove, Fire, 3
-umbral_hot_pot, Blazing Stove, Fire, 3
+moondew_radish_slices, Blazing Stove, Fire, 2
+umbral_hot_pot, Blazing Stove, Fire, 2
 umbral_sweet_and_spicy_sauce, Simmering Pot, Fire, 3
-umbral_pickle, Pickling Jar, Dark, 3
+umbral_pickle, Pickling Jar, Dark, 2
 harvest_platter, Crafting Table, Artisanship, 3
 sea_salt_roasted_pumpkin, Claw Game Cooker, Fire, 2
 honey_glazed_pumpkin_cup, Blazing Stove, Fire, 2
@@ -216,3 +216,6 @@ shredded_coconut_cake,Blazing Stove,Fire,3
 cranberry_soft_cake,Blazing Stove,Fire,3
 orange_flower_rice_drink,Blazing Stove,Fire,3
 quick_pearl, Tidewhisper Sandcastle, Leisure, 3
+pearl_powder, Carousel Mill, Wind, 3
+star_diamond, Crafting Table, Artisanship, 3
+pearl_face_cream, Crafting Table, Artisanship, 3

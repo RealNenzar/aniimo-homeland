@@ -34,6 +34,11 @@ export function speed(r, f) {
   }
   const level = Math.max(1, Math.min(4, Number(f.skill) || 1));
   const need = Math.max(1, Math.min(3, r.abilityLevel || 1));
+  // These two facilities have no personality bonus and use a 40% efficiency
+  // increase per ability level above the recipe's recommended level.
+  if (['Dance Pad Polisher','Aniipod Maker'].includes(r.facility) && level >= need) {
+    return r.workload / ((1 + .25 * (need - 1)) * (1 + .4 * (level - need)));
+  }
   let rate;
   if (gathering.has(r.facility)) rate = Math.max(.1, (60 + (level - 1) * 30 - (need - 1) * 15) / 60);
   else { const d = level - need; rate = d < 0 ? Math.max(.25, 1 + d * .25) : d === 0 ? 1 : d + 2; }
