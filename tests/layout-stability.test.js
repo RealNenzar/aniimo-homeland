@@ -1,13 +1,26 @@
 import {test} from 'node:test';
 import {strict as assert} from 'node:assert';
 import {readFileSync} from 'node:fs';
-import {layoutPlan,stableLayoutPlan,placePower} from '../layout.js';
+import {layoutPlan,stableLayoutPlan,placePower,PLOT_GRID,PLOT_WIDTH,PLOT_HEIGHT,powerReachesNode} from '../layout.js';
 import {optimize} from '../solver.js';
 
 const definitions=JSON.parse(readFileSync(new URL('../data/climate-facilities.json',import.meta.url)));
 const row=(facility,id,{units=1,environment='',electric=false}={})=>({units,rate:units,recipe:{id,facility,environment,worker:{level:1,electric}}});
 const pos=(name,recipe,x,y,w=8,h=6,environment='')=>({name,recipe,plot:1,x,y,w,h,environment,level:1,electric:false});
 const noOverlap=placed=>placed.every((a,i)=>placed.slice(i+1).every(b=>a.plot!==b.plot||a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y));
+function assertPowerNetwork(result){
+ const origin=new Map(PLOT_GRID.flatMap((row,y)=>row.map((plot,x)=>[plot,{x:x*PLOT_WIDTH,y:y*PLOT_HEIGHT}])));
+ const global=p=>({...p,x:origin.get(p.plot).x+p.x,y:origin.get(p.plot).y+p.y});
+ const nodes=result.grid.placed.map(p=>{const g=global(p);return {...g,x:g.x+g.w/2,y:g.y+g.h/2,radius:p.name==='Crackle Generator'?22:14}});
+ const targets=result.layout.placed.filter(p=>p.electric).map(global);
+ const supplied=(n,t)=>n.x+n.radius>t.x&&n.x-n.radius<t.x+t.w&&n.y+n.radius>t.y&&n.y-n.radius<t.y+t.h;
+ const valid=list=>{const seen=new Set(list.filter(n=>n.name==='Crackle Generator'));let changed=true;
+  while(changed){changed=false;for(const n of list)if(!seen.has(n)&&[...seen].some(o=>powerReachesNode(o,n))){seen.add(n);changed=true}}
+  return seen.size===list.length&&targets.every(t=>list.some(n=>supplied(n,t)));
+ };
+ assert.ok(valid(nodes),'all electric facilities and poles must be connected');
+ for(const pole of nodes.filter(n=>n.name==='Crackle Power Pole'))assert.equal(valid(nodes.filter(n=>n!==pole)),false,'every pole must be necessary');
+}
 
 test('existing production positions are retained when the recipe is unchanged',()=>{
  const rows=[row('Woodworking Bench','lumber'),row('Woodworking Bench','planks')];
@@ -69,4 +82,28 @@ test('separate temperature zones on one plot retain valid old positions',()=>{
  const result=stableLayoutPlan(rows,1,{previous,rv:18,definitions});
  assert.equal(result.climate.complete,true);assert.equal(result.stability.total,4);assert.equal(result.stability.infrastructureReused,true);
  assert.ok(noOverlap(result.layout.placed));
+});
+
+// Reduced layout fixture: production geometry only; no inventory or player settings.
+test('a fully powered alternative beats an incomplete layout with more unchanged positions',()=>{
+ const fixture=JSON.parse(readFileSync(new URL('./fixtures/shared-power-selection.json',import.meta.url)));
+ const result=stableLayoutPlan(fixture.rows,16,{previous:fixture.previous,rv:19,definitions,generatorCount:2,poleCap:24,storageLimit:7});
+ assert.equal(result.layout.unplaced.length,0);assert.equal(result.climate.complete,true);
+ assert.equal(result.grid.complete,true);assert.equal(result.grid.uncovered,0);
+ assert.equal(result.grid.generatorsPlaced,2);assert.ok(result.grid.poles<=24);assert.ok(noOverlap(result.layout.placed));assertPowerNetwork(result);
+});
+test('dense new plans retry power placement before accepting an incomplete layout',()=>{
+ const fixture=JSON.parse(readFileSync(new URL('./fixtures/shared-power-selection.json',import.meta.url)));
+ const result=stableLayoutPlan(fixture.rows,16,{rv:19,definitions,generatorCount:2,poleCap:24,storageLimit:7});
+ assert.equal(result.layout.unplaced.length,0);assert.equal(result.climate.complete,true);
+ assert.equal(result.grid.complete,true);assert.equal(result.grid.uncovered,0);assert.ok(noOverlap(result.layout.placed));assertPowerNetwork(result);
+});
+
+test('a recalculated dense plan connects every electric facility without unnecessary poles',()=>{
+ const {rows}=JSON.parse(readFileSync(new URL('./fixtures/recalculated-power-selection.json',import.meta.url)));
+ const {previous}=JSON.parse(readFileSync(new URL('./fixtures/shared-power-selection.json',import.meta.url)));
+ const result=stableLayoutPlan(rows,16,{previous,rv:19,definitions,generatorCount:3,poleCap:24,storageLimit:7});
+ assert.equal(result.layout.unplaced.length,0);assert.equal(result.climate.complete,true);
+ assert.equal(result.grid.complete,true);assert.equal(result.grid.uncovered,0);
+ assert.equal(result.grid.generatorsPlaced,3);assert.ok(result.grid.poles<=24);assert.ok(noOverlap(result.layout.placed));assertPowerNetwork(result);
 });

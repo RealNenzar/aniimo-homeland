@@ -154,7 +154,7 @@ export function placePower(layout, generatorCount, poleCap, {preservePositions=f
         const node={x:o.x+x+size/2,y:o.y+y+size/2,w:size,h:size,radius};
         if(mustConnect && !nodes.some(n=>powerReachesNode(n,node)))continue;
         const hits=remaining.filter(t=>touches(node,t)).length;
-        const distance=remaining.length?Math.min(...remaining.map(t=>Math.max(Math.abs(node.x-(t.gx+t.w/2)),Math.abs(node.y-(t.gy+t.h/2))))):0;
+        const distance=remaining.length?Math.min(...remaining.map(t=>Math.abs(node.x-(t.gx+t.w/2))+Math.abs(node.y-(t.gy+t.h/2)))):0;
         const score=hits*10000-distance;
         if(!best||score>best.score)best={plot,localX:x,localY:y,w:size,h:size,...node,score};
       }
@@ -200,7 +200,7 @@ export function placePower(layout, generatorCount, poleCap, {preservePositions=f
         const blocker=blockers[0];
         if(blocker.environment||blocker.infrastructure||['Farmland','Woodland','Heat Furnace','Cooling Unit','Sunlamp'].includes(blocker.name))continue;
         const hits=remaining.filter(t=>touches(candidate,t)).length;
-        const distance=remaining.length?Math.min(...remaining.map(t=>Math.max(Math.abs(candidate.x-(t.gx+t.w/2)),Math.abs(candidate.y-(t.gy+t.h/2))))):0;
+        const distance=remaining.length?Math.min(...remaining.map(t=>Math.abs(candidate.x-(t.gx+t.w/2))+Math.abs(candidate.y-(t.gy+t.h/2)))):0;
         candidates.push({rect,blocker,score:hits*10000-distance});
       }
     }
@@ -376,23 +376,28 @@ export function stableLayoutPlan(rows,boughtPlots,{previous=[],rv=1,definitions=
   const anchored=layoutPlan(rows,boughtPlots,{previous:old});
   replay=reuseInfrastructure(anchored,old,rv,definitions,generatorCount,poleCap,storageLimit);
  }
- const build=(reuse)=>{
-  const layout=layoutPlan(rows,boughtPlots,{previous:reuse?old:[]});
+ const build=(reuse,hints=old)=>{
+  const layout=layoutPlan(rows,boughtPlots,{previous:reuse?hints:[]});
   const climate=reuse?placeClimate(layout,rv,definitions):packClimate(layout,rv,definitions);
   layout.placed.push(...climate.placed);
   const grid=placePower(layout,generatorCount,poleCap,{preservePositions:reuse});layout.placed.push(...grid.placed);
   const storages=placeStorage(layout,storageLimit);layout.placed.push(...storages);
   return {layout,climate,grid,storages};
  };
- const baseline=build(false);if(!old.length)return {...baseline,stability:{usedPrevious:false,preserved:0,exact:0}};
- const candidate=build(true);
+ const baseline=build(false);
+ // A dense fresh layout can trap the greedy power search. Retry with its
+ // production positions as anchors, which allows the power pass to find an
+ // alternative network before moving any uncovered facilities.
+ if(!old.length&&(baseline.grid.complete||baseline.layout.unplaced.length||!baseline.climate.complete))
+  return {...baseline,stability:{usedPrevious:false,preserved:0,exact:0}};
+ const candidate=build(true,old.length?old:baseline.layout.placed);
  // Never swap which facilities are missing coverage in an incomplete plan:
  // only select the stable candidate when it is fully placed and supplied.
  const safe=result=>result&&result.layout.unplaced.length===0&&result.climate.complete&&result.grid.complete&&
   result.layout.unplaced.length<=baseline.layout.unplaced.length&&
   result.climate.uncovered.length<=baseline.climate.uncovered.length&&
   result.grid.uncovered<=baseline.grid.uncovered&&result.grid.generatorsPlaced>=baseline.grid.generatorsPlaced&&
-  result.storages.length>=baseline.storages.length;
+  (!baseline.grid.complete||result.storages.length>=baseline.storages.length);
  const production=p=>!p.infrastructure&&!['Crackle Generator','Crackle Power Pole','Storage Unit'].includes(p.name);
  const match=result=>{const remaining=old.slice();let preserved=0,exact=0,total=0;
   for(const p of result.layout.placed){
@@ -404,7 +409,7 @@ export function stableLayoutPlan(rows,boughtPlots,{previous=[],rv=1,definitions=
  let best=baseline,bestMatch=match(baseline),usedPrevious=false;
  for(const option of [replay,candidate])if(safe(option)){
   const next=match(option);
-  if(next.total>bestMatch.total||next.total===bestMatch.total&&next.exact>bestMatch.exact){best=option;bestMatch=next;usedPrevious=true}
+  if(!best.grid.complete||best.layout.unplaced.length||!best.climate.complete||next.total>bestMatch.total||next.total===bestMatch.total&&next.exact>bestMatch.exact){best=option;bestMatch=next;usedPrevious=old.length>0}
  }
  return {...best,stability:{usedPrevious,...bestMatch,infrastructureReused:best===replay}};
 }
