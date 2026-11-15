@@ -1,4 +1,4 @@
-import {speed,possibleWorkerLevel} from './solver.js?v=0.2.29';
+import {speed,possibleWorkerLevel} from './solver.js?v=0.2.30';
 import {workers} from './worker-abilities.js';
 import {recipeFamily} from './families.js';
 

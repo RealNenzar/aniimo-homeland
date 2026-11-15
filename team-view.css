@@ -12,3 +12,5 @@
 .team-details{margin-top:10px;border-top:1px solid var(--line);padding-top:12px}
 .team-details summary{cursor:pointer;font-weight:700}
 .team-details .tablewrap{margin-top:14px}
+
+.level-four-marker{display:inline-flex;align-items:center;padding:1px 6px;margin-left:4px;border:1px solid currentColor;border-radius:999px;color:var(--ink);font-size:11px;font-weight:700;line-height:1.4;white-space:nowrap}

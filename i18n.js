@@ -93,7 +93,7 @@ rows.push(
 ['Der angezeigte Plan kann wegen begrenzter Vorräte, Eventbudget oder einmaliger Aufträge nicht zuverlässig über den Planungszeitraum hinaus hochgerechnet werden.','The displayed plan cannot be reliably extrapolated beyond the planning period because inventory, event budget or one-off orders are limited.','Показанный план нельзя надёжно продлить за пределы периода из-за ограниченных запасов, бюджета события или разовых заказов.','Le plan affiché ne peut pas être extrapolé de manière fiable au-delà de la période à cause des stocks, du budget événement ou des commandes ponctuelles limités.'],
 ['Das RV-Ziel wird mit den berechneten Raten nicht vollständig erreicht.','The RV target is not fully reached at the calculated rates.','Цель RV не достигается при рассчитанных темпах.','L’objectif RV n’est pas entièrement atteint avec les cadences calculées.']
 );
-rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.29 · Letztes Update: 15.11.2026','Version 0.2.29 · Updated: 2026-11-15','Версия 0.2.29 · Обновлено: 15.11.2026','Version 0.2.29 · Mise à jour : 15/11/2026']);
+rows.push(['Klimarunde','Climate pass','Климатический проход','Passe climatique'],['Personalbedarf','Staffing','Персонал','Personnel'],['Version 0.2.30 · Letztes Update: 15.11.2026','Version 0.2.30 · Updated: 2026-11-15','Версия 0.2.30 · Обновлено: 15.11.2026','Version 0.2.30 · Mise à jour : 15/11/2026']);
 rows.push(['Berechnung abbrechen','Cancel calculation','Отменить расчёт','Annuler le calcul'],['Berechnung abgebrochen','Calculation cancelled','Расчёт отменён','Calcul annulé'],['Du kannst die Berechnung erneut starten.','You can start the calculation again.','Можно запустить расчёт снова.','Vous pouvez relancer le calcul.']);
 rows.push(
  ['Informationen','Information','Информация','Informations'],
@@ -251,3 +251,5 @@ dict['Stufe 4: mögliche Verbesserungen']={en:'Level 4: potential improvements',
 dict['Zeiten je Vorgang mit passender Persönlichkeit. Mehr Gesamtertrag hängt auch von Material und anderen Gebäuden ab.']={en:'Times per operation with the matching personality. Total output also depends on materials and other facilities.',ru:'Время операции с подходящим характером. Общий выпуск также зависит от материалов и других зданий.',fr:'Durées par opération avec la personnalité adaptée. Le rendement total dépend aussi des matériaux et des autres bâtiments.'};
 
 dict['Vergleich']={en:'Comparison',ru:'Сравнение',fr:'Comparaison'};
+
+dict['Stufe 4 schneller pro Vorgang']={en:'Level 4 is faster per operation',ru:'Уровень 4 быстрее за операцию',fr:'Le niveau 4 est plus rapide par opération'};
