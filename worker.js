@@ -1,7 +1,7 @@
-import { optimize } from './solver.js?v=0.2.27';
-import {stableLayoutPlan,STORAGE_LIMITS} from './layout.js?v=0.2.27';
+import { optimize } from './solver.js?v=0.2.28';
+import {stableLayoutPlan,STORAGE_LIMITS} from './layout.js?v=0.2.28';
 import {poleLimit} from './power.js';
-import {solveWithAutoHorizon} from './auto-horizon.js?v=0.2.27';
+import {solveWithAutoHorizon} from './auto-horizon.js?v=0.2.28';
 self.onmessage=async e=>{
   try{
     const original=e.data.state;

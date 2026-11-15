@@ -267,7 +267,7 @@ test('climate devices reserve staff and obey explicitly entered ability counts',
  const result=await optimize([r],s);assert.equal(result.goals[0].value,0);
 });
 test('selected power percentage changes generator demand and processing speed',()=>{
- const s=state();s.currentRv=12;s.autoWorkers=true;s.power={enabled:true,module:1,level:1,watts:600,efficiencyPercent:100};s.facilities={'Claw Game Cooker':f};
+ const s=state();s.currentRv=12;s.autoWorkers=true;s.workerCounts={Fire:{3:0}};s.power={enabled:true,module:1,level:1,watts:600,efficiencyPercent:100};s.facilities={'Claw Game Cooker':f};
  const r=recipe('food','Claw Game Cooker',{seconds:0,workload:120,abilityLevel:1});const electric=model([r],s).recipes.find(x=>x.worker.electric);
  assert.equal(speed(electric,electric.worker),120);assert.match(model([r],s).lp,/600\.000000000 generatorCount/);
 });

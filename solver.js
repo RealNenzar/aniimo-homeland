@@ -53,7 +53,14 @@ export function prepare(catalog, state) {
     const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
     const levels=(state.autoWorkers && !isField(r) && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1]).filter(level=>possibleWorkerLevel(r,ability,level));
     const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,watered:state.wateringMode==='full',bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:!!configured}:{...f,watered:state.wateringMode==='full'}}));
-    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0) modes.push({...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100)),ability,limited:false}});
+    if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0){
+      const electric={...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100)),ability,limited:false}};
+      const family=recipeFamily(r)||(ability==='Perfumery'?'Dewy':null), familyCount=family?state.familyCounts?.[family]:undefined;
+      const familyUnavailable=familyCount!==''&&familyCount!==null&&familyCount!==undefined&&Number(familyCount)<=0;
+      // Power is an option only if it beats every entered eligible worker.
+      // When no eligible worker exists, it remains a usable fallback.
+      if(familyUnavailable||!modes.some(m=>speed(m,m.worker)<=speed(electric,electric.worker)+1e-9))modes.push(electric);
+    }
     return modes;
   })).filter(r => {
     const f = r.worker;
@@ -103,11 +110,6 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const reserveVars=Object.entries(reserveTargets).filter(([item,need])=>item!=='coins'&&Number(need)>0).map(([item,need],i)=>({item,need:Number(need),variable:`reserve${i}`}));
   const reserveByItem=new Map(reserveVars.map(x=>[x.item,x]));
   const objectives = {coins:[],event:[],rv:[[1,'progress']],reserve:reserveVars.map(x=>[1/reserveVars.length,x.variable]),wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
-  // Only as a final tie-break after the player's goals: when an eligible
-  // Aniimo is faster, avoid using electricity solely to save an idle slot.
-  // Crew, family and power constraints still decide what is feasible.
-  const fasterManual=new Set();
-  for(const r of recipes)if(r.worker.electric&&recipes.some(m=>!m.worker.electric&&m.facility===r.facility&&m.group===r.group&&m.id===r.id&&speed(m,m.worker)<speed(r,r.worker)-1e-9))fasterManual.add(r);
   daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
   const fieldAbilities=new Map();
   recipes.forEach((r,i)=>{
@@ -125,7 +127,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const f = r.worker, x=`x${i}`, n=`n${i}`, rate=3600/speed(r,f);
     if (!shared.has(r.facility)) {
       lines.push(`capacity${i}: ${expr([[1,x],[-rate,n]])} <= 0`); integer.push(n);
-      if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([fasterManual.has(r)?-1.1:-.0001,n]);}
+      if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([-.0001,n]);}
       else if(!isField(r)) objectives.workers.push([-1,n]);
       else objectives.workers.push([-.0001,n]);
     }

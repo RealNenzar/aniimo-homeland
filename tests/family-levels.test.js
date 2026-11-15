@@ -40,7 +40,7 @@ test('Perfumery only has levels one and three, but electric mode does not need a
 
 test('Dewy leisure and Perfumery share a family count, while electric Perfumery needs no family member',async()=>{
  const recipe=(id,facility,extra={})=>({id,facility,ingredients:{},yield:1,seconds:0,workload:60,facilityLevel:1,module:'',abilityLevel:1,verified:true,event:null,sellCurrency:'none',sellValue:0,seedCost:0,byproductYield:0,eventPoints:0,...extra});
- const recipes=[recipe('aromathyst','Dewy House'),recipe('perfume','Phonolfactory Table',{ingredients:{aromathyst:1},sellCurrency:'coins',sellValue:100})];
+ const recipes=[recipe('aromathyst','Dewy House'),recipe('perfume','Phonolfactory Table',{ingredients:{aromathyst:1},abilityLevel:3,sellCurrency:'coins',sellValue:100})];
  const state=base();Object.assign(state,{hours:1,currentRv:12,familyCounts:{Dewy:1},priorities:[{id:'coins',enabled:true}]});
  let result=await optimize(recipes,state);
  assert.equal(result.goals[0].value,0);
