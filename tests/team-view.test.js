@@ -14,3 +14,9 @@ test('details are collapsed and show one dedicated worker per facility',()=>{
  assert.match(view,/<td>2<\/td><td>1<\/td>/);
  assert.match(view,/Jukebox Dryer/);
 });
+test('level-four suggestions are shown in a collapsed comparison',()=>{
+ const team={groups:[],jobs:[],upgrades:[{ability:'Artisanship',personality:'Energetic',facility:'Woodworking Bench',recipe:'rough_lumber',count:1,seconds3:9.4,seconds4:7.1}]};
+ const view=renderTeamView(team,{teamLimit:43,language:'de',tr:s=>s,gameTerm:s=>s,esc:s=>String(s),pretty:s=>s,fmt:n=>n,abilityImage:()=>''});
+ assert.match(view,/<details class="team-details"><summary>Stufe 4: mögliche Verbesserungen/);
+ assert.match(view,/rough_lumber/);assert.match(view,/9\.4 s/);assert.match(view,/7\.1 s/);
+});

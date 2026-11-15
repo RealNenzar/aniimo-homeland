@@ -6,7 +6,7 @@ import {optimize,prepare,speed} from '../solver.js';
 const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
 const state=()=>({hours:1,beans:0,event:false,unverified:false,autoWorkers:true,
  modules:{resource_detector:5},facilities:{'Nimbus Bed':{count:1,level:2}},
- workerCounts:{Leisure:{1:1}},familyCounts:{},stock:{},targets:{},notes:[],special:[],
+ workerCounts:{Leisure:{1:1,3:0}},familyCounts:{},stock:{},targets:{},notes:[],special:[],
  priorities:[{id:'coins',enabled:true}],power:{enabled:false}});
 
 test('level-one Nimbi produces and sells more normal wool than quick wool',async()=>{
@@ -50,11 +50,10 @@ test('a faster available Aniimo is preferred over power when the same RV goal is
  assert.equal(result.rows[0].recipe.worker.skill,4);
 });
 
-test('electric mode remains available when no suitable Aniimo is entered',async()=>{
+test('slower electricity is never used even when no suitable Aniimo is entered',async()=>{
  const rough=catalog.find(r=>r.id==='rough_lumber');
- const s=state();Object.assign(s,{hours:24,currentRv:18,facilities:{'Woodworking Bench':{count:1,level:1}},workerCounts:{Artisanship:{4:0}},modules:{},stock:{wood_block:1000},targets:{rough_lumber:1},priorities:[{id:'rv',enabled:true}],power:{enabled:true,module:4,level:4,watts:1200,efficiencyPercent:120}});
- const result=await optimize([rough],s);assert.ok(result.goals[0].value>.999);
- assert.equal(result.rows[0].recipe.worker.electric,true);
+ const s=state();Object.assign(s,{hours:24,currentRv:18,facilities:{'Woodworking Bench':{count:1,level:1}},workerCounts:{Artisanship:{3:0,4:0}},modules:{},stock:{wood_block:1000},targets:{rough_lumber:1},priorities:[{id:'rv',enabled:true}],power:{enabled:true,module:4,level:4,watts:1200,efficiencyPercent:120}});
+ const result=await optimize([rough],s);assert.equal(result.goals[0].value,0);assert.equal(result.rows.length,0);
 });
 
 test('electricity is available only when faster than entered workers for the three timber upgrades',()=>{
@@ -77,7 +76,22 @@ test('power cannot replace faster registered workers to improve a higher priorit
 });
 
 test('electricity remains an option if the required family is unavailable',()=>{
- const r=catalog.find(r=>r.id==='bamboo_joss_stick');const s=state();
+ const r={...catalog.find(r=>r.id==='bamboo_joss_stick'),abilityLevel:3};const s=state();
  Object.assign(s,{facilities:{'Phonolfactory Table':{count:1,level:7}},workerCounts:{Perfumery:{3:1}},familyCounts:{Dewy:0},power:{enabled:true,module:4,level:4,watts:1200,efficiencyPercent:120}});
  assert.ok(prepare([r],s).some(x=>x.worker.electric));
+});
+
+test('an optional level-four zero retains the default level-three worker',async()=>{
+ const r=catalog.find(r=>r.id==='coarse_sifted_ore');const s=state();
+ Object.assign(s,{hours:1,currentRv:19,facilities:{'Chimney Kiln':{count:1,level:2}},workerCounts:{Fire:{1:'',4:0}},modules:{},stock:{mineral_sand:100000},targets:{coarse_sifted_ore:1},priorities:[{id:'rv',enabled:true}],power:{enabled:true,module:4,level:4,watts:1200,efficiencyPercent:120}});
+ const recipes=prepare([r],s);assert.ok(recipes.some(x=>!x.worker.electric&&x.worker.skill===3));assert.ok(recipes.every(x=>!x.worker.electric));
+ const result=await optimize([r],s);assert.ok(result.goals[0].value>.99);assert.equal(result.rows[0].recipe.worker.skill,3);
+ s.workerCounts.Fire[3]=0;assert.equal((await optimize([r],s)).goals[0].value,0);
+});
+
+test('a level-four entry does not implicitly remove the default level-three workers',()=>{
+ const r=catalog.find(r=>r.id==='standard_planks');const s=state();
+ Object.assign(s,{facilities:{'Woodworking Bench':{count:2,level:4}},workerCounts:{Artisanship:{4:1}},modules:{},power:{enabled:true,module:4,level:4,watts:1200,efficiencyPercent:120}});
+ const recipes=prepare([r],s);assert.deepEqual(recipes.map(x=>x.worker.skill).sort(),[3,4]);
+ assert.equal(recipes.find(x=>x.worker.skill===3).worker.limited,false);assert.equal(recipes.find(x=>x.worker.skill===4).worker.limited,true);
 });

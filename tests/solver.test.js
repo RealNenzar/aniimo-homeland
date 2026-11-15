@@ -83,7 +83,7 @@ test('facility groups enforce their own levels',async()=>{
 test('automatic power mode uses only the required generators for a reachable target',async()=>{
  const s=state();s.currentRv=18;s.autoWorkers=true;s.workerCounts={Artisanship:{1:0,2:0,3:0,4:0}};s.power={enabled:true,module:4,level:4,watts:1200};
  s.facilities={'Woodworking Bench':{groups:[{count:1,level:1}]}};s.stock={wood_block:1000};s.targets={rough_lumber:10};s.priorities=[{id:'rv',enabled:true}];
- const lumber=recipe('rough_lumber','Woodworking Bench',{seconds:0,workload:34,abilityLevel:2,ingredients:{wood_block:8},sellCurrency:'none'});
+ const lumber=recipe('rough_lumber','Woodworking Bench',{seconds:0,workload:34,abilityLevel:3,ingredients:{wood_block:8},sellCurrency:'none'});
  const result=await optimize([lumber],s);
  assert.ok(result.rows.some(row=>row.recipe.worker.electric));
  assert.equal(result.power.generators,1);
@@ -265,11 +265,12 @@ test('climate devices reserve staff and obey explicitly entered ability counts',
  const r=recipe('crop','Farmland',{seconds:3600,environment:'Scorching',sellValue:1});
  const m=model([r],s);assert.match(m.lp,/climateLink/);assert.match(m.lp,/supportCrew/);
  const result=await optimize([r],s);assert.equal(result.goals[0].value,0);
+ s.workerCounts={Fire:{4:0}};assert.ok((await optimize([r],s)).goals[0].value>0);
 });
 test('selected power percentage changes generator demand and processing speed',()=>{
  const s=state();s.currentRv=12;s.autoWorkers=true;s.workerCounts={Fire:{3:0}};s.power={enabled:true,module:1,level:1,watts:600,efficiencyPercent:100};s.facilities={'Claw Game Cooker':f};
- const r=recipe('food','Claw Game Cooker',{seconds:0,workload:120,abilityLevel:1});const electric=model([r],s).recipes.find(x=>x.worker.electric);
- assert.equal(speed(electric,electric.worker),120);assert.match(model([r],s).lp,/600\.000000000 generatorCount/);
+ const r=recipe('food','Claw Game Cooker',{seconds:0,workload:120,abilityLevel:3});const electric=model([r],s).recipes.find(x=>x.worker.electric);
+ assert.equal(speed(electric,electric.worker),80);assert.match(model([r],s).lp,/600\.000000000 generatorCount/);
 });
 test('coin tolerance accepts full 100 percent',()=>{
  const s=state();s.event=true;s.eventCoinTolerance=1;s.priorities=[{id:'coins',enabled:true},{id:'event',enabled:true}];

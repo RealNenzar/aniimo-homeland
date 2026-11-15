@@ -1,9 +1,10 @@
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {strict as assert} from 'node:assert';
-import {speed,optimize} from '../solver.js';
+import {speed,optimize,prepare} from '../solver.js';
 import {compareWorkModes} from '../power-comparison.js';
 import {ELECTRIC_FACILITIES} from '../power.js';
+import {workers} from '../worker-abilities.js';
 
 const catalog=JSON.parse(readFileSync(new URL('../data/catalog.json',import.meta.url)));
 const byId=id=>catalog.find(r=>r.id===id);
@@ -21,8 +22,9 @@ test('rough lumber matches the reported level-four Energetic and 100 percent pow
 test('comparison uses entered level rather than the electric row synthetic worker',()=>{
  const s=makeState(),r={...byId('rough_lumber'),worker:{skill:3,electric:true}};
  assert.equal(compareWorkModes(r,s).manual.level,4);
- s.workerCounts.Artisanship={2:1};assert.equal(compareWorkModes(r,s).manual.level,2);
- s.workerCounts.Artisanship={4:0};assert.equal(compareWorkModes(r,s).manual,null);
+ s.workerCounts.Artisanship={2:1,3:0};assert.equal(compareWorkModes(r,s).manual.level,2);
+ s.workerCounts.Artisanship={4:0};assert.equal(compareWorkModes(r,s).manual.level,3);
+ s.workerCounts.Artisanship={3:0,4:0};assert.equal(compareWorkModes(r,s).manual,null);
  s.workerCounts={};assert.equal(compareWorkModes(r,s).manual.level,3);
 });
 test('optimizer chooses the faster Aniimo when capacity improves the selected goal',async()=>{
@@ -31,8 +33,8 @@ test('optimizer chooses the faster Aniimo when capacity improves the selected go
  assert.equal(result.rows[0].recipe.worker.skill,4);
 });
 test('electric mode may win at the recommended ability level',()=>{
- const s=makeState();s.workerCounts.Artisanship={2:1};s.power.efficiencyPercent=120;
- const c=compareWorkModes(byId('rough_lumber'),s);assert.ok(c.electric<c.manual.seconds);
+ const s=makeState();s.workerCounts.Artisanship={3:1};s.power.efficiencyPercent=120;
+ const c=compareWorkModes(byId('laminated_beams'),s);assert.ok(c.electric<c.manual.seconds);
 });
 test('all electric facility types are compared with an appropriate available worker',()=>{
  for(const facility of ELECTRIC_FACILITIES){
@@ -42,6 +44,16 @@ test('all electric facility types are compared with an appropriate available wor
   const comparison=compareWorkModes(r,s);assert.ok(comparison?.manual,facility);
   assert.ok(comparison.electric>0&&comparison.manual.seconds>0,facility);
  }
+});
+test('every enabled electric recipe beats level three even if no worker is entered',()=>{
+ let checked=0;
+ for(const r of catalog.filter(x=>ELECTRIC_FACILITIES.has(x.facility)&&x.workload>0&&!x.module&&!x.event&&x.verified)){
+  const ability=workers[r.facility]?.[0];const s=makeState();s.facilities={[r.facility]:{count:1,level:9}};s.power.efficiencyPercent=120;s.workerCounts=ability?{[ability]:{3:0,4:0}}:{};
+  const electric=prepare([r],s).find(x=>x.worker.electric);if(!electric)continue;
+  const bonus=!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility);
+  assert.ok(speed(electric,electric.worker)+1e-9<speed(r,{skill:3,bonus}),r.id);checked++;
+ }
+ assert.ok(checked>20);
 });
 test('no-personality facilities use their distinct 40 percent level bonus',()=>{
  const fruit=byId('growth_fruit'),pod=byId('aniipod_mega');

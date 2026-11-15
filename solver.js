@@ -21,6 +21,11 @@ export function possibleWorkerLevel(recipe, ability, level) {
   if(ability==='Perfumery')return [1,3].includes(level);
   return true;
 }
+export const hasWorkerCount=(entries,level)=>entries?.[level]!==''&&entries?.[level]!==null&&entries?.[level]!==undefined;
+export function workerLevelsForRecipe(recipe,ability,entries){
+ return [1,2,3,4].filter(level=>possibleWorkerLevel(recipe,ability,level)&&
+  (hasWorkerCount(entries,level)?Number(entries[level])>0:level===3));
+}
 
 const base = (id, ids) => id.startsWith('quick_') && ids.has(id.slice(6)) ? id.slice(6) : id;
 const term = (coef, name) => `${coef < 0 ? '-' : '+'} ${Math.abs(coef).toPrecision(12)} ${name}`;
@@ -50,16 +55,15 @@ export function prepare(catalog, state) {
   const available = catalog.flatMap(r => facilityGroups(state.facilities[r.facility]).flatMap((f,group) => {
     const ability=workers[r.facility]?.[0];
     const entries=ability && state.workerCounts?.[ability];
-    const configured=entries && Object.values(entries).some(v=>v!==''&&v!==null&&v!==undefined);
-    const levels=(state.autoWorkers && !isField(r) && ability && configured?[1,2,3,4].filter(l=>Number(entries[l])>0):[state.autoWorkers?3:Number(f.skill)||1]).filter(level=>possibleWorkerLevel(r,ability,level));
-    const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,watered:state.wateringMode==='full',bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:!!configured}:{...f,watered:state.wateringMode==='full'}}));
+    const levels=state.autoWorkers&&!isField(r)&&ability?workerLevelsForRecipe(r,ability,entries):[state.autoWorkers?3:Number(f.skill)||1];
+    const modes=levels.map(skill=>({...r,group,worker:state.autoWorkers?{...f,skill,watered:state.wateringMode==='full',bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false,ability,limited:hasWorkerCount(entries,skill)}:{...f,watered:state.wateringMode==='full'}}));
     if(state.autoWorkers && state.power?.enabled && ELECTRIC_FACILITIES.has(r.facility) && r.workload>0){
       const electric={...r,group,worker:{...f,skill:3,electric:true,powerEfficiency:Math.max(.01,Math.min(1.2,Number(state.power?.efficiencyPercent??120)/100)),ability,limited:false}};
-      const family=recipeFamily(r)||(ability==='Perfumery'?'Dewy':null), familyCount=family?state.familyCounts?.[family]:undefined;
-      const familyUnavailable=familyCount!==''&&familyCount!==null&&familyCount!==undefined&&Number(familyCount)<=0;
-      // Power is an option only if it beats every entered eligible worker.
-      // When no eligible worker exists, it remains a usable fallback.
-      if(familyUnavailable||!modes.some(m=>speed(m,m.worker)<=speed(electric,electric.worker)+1e-9))modes.push(electric);
+      // Compare against level 3 even when the player explicitly has none.
+      // Missing staff never justifies a slower electric mode.
+      const baseline={skill:3,bonus:!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility),electric:false};
+      const reference=[...modes.map(m=>speed(m,m.worker)),speed(r,baseline)];
+      if(speed(electric,electric.worker)+1e-9<Math.min(...reference))modes.push(electric);
     }
     return modes;
   })).filter(r => {
@@ -161,7 +165,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   if(electrical.length){const p=state.power||{},rv=Number(state.currentRv)||0,max=rv>=18?3:rv>=15?2:rv>=12?1:0,efficiency=Math.max(.01,Math.min(1.2,Number(p.efficiencyPercent??120)/100));integer.push('generatorCount');lines.push(`power: ${expr([...electrical,[-(Number(p.watts)||0)/efficiency,'generatorCount']])} <= 0`);lines.push(`generatorLimit: generatorCount <= ${max}`);objectives.workers.push([-.001,'generatorCount']);}
   const combinedAbilities=new Set([...fieldAbilities.keys(),...[...climateModes.values()].map(m=>m.ability),...(electrical.length?['Lightning']:[])]);
   for(const ability of combinedAbilities){
-    const levels=state.workerCounts?.[ability];if(!levels||!Object.values(levels).some(x=>x!==''&&x!==null&&x!==undefined))continue;
+    const levels=state.workerCounts?.[ability];if(!levels||!hasWorkerCount(levels,3))continue;
     const count=Object.values(levels).reduce((n,x)=>n+Math.max(0,Math.floor(Number(x)||0)),0);
     const terms=recipes.flatMap((r,i)=>r.worker.limited&&!r.worker.electric&&r.worker.ability===ability?[[1,`n${i}`]]:[]);
     if(fieldAbilities.has(ability))terms.push([1,fieldAbilities.get(ability)]);

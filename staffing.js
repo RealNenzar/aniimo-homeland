@@ -1,4 +1,4 @@
-import {speed} from './solver.js?v=0.2.28';
+import {speed,possibleWorkerLevel} from './solver.js?v=0.2.29';
 import {workers} from './worker-abilities.js';
 import {recipeFamily} from './families.js';
 
@@ -6,8 +6,18 @@ import {recipeFamily} from './families.js';
 // Occupancy is an average only; breaks and travel are not simulated.
 export function buildTeam(result,layout,growerSteps){
  const people=[];
+ const upgrades=new Map();
  for(const row of result.rows){
   const r=row.recipe,info=workers[r.facility];
+  if(info&&r.workload>0&&possibleWorkerLevel(r,info[0],4)&&(r.worker.electric||r.worker.skill!==4)){
+   const bonus=!['Dance Pad Polisher','Aniipod Maker'].includes(r.facility);
+   const seconds3=speed(r,{skill:3,bonus}),seconds4=speed(r,{skill:4,bonus});
+   if(seconds4+1e-9<seconds3&&(!r.worker.electric||seconds4+1e-9<speed(r,r.worker))){
+    const key=JSON.stringify([r.facility,r.id,info[0],info[1],recipeFamily(r)]),existing=upgrades.get(key);
+    if(existing)existing.count+=Math.ceil(row.units-1e-7);
+    else upgrades.set(key,{facility:r.facility,recipe:r.id,ability:info[0],personality:info[1],family:recipeFamily(r),count:Math.ceil(row.units-1e-7),seconds3,seconds4,electric:!!r.worker.electric});
+   }
+  }
   if((r.seconds&&['Farmland','Woodland'].includes(r.facility))||r.worker.electric||!info)continue;
   const [ability,personality]=info,count=Math.ceil(row.units-1e-7);
   const load=Math.max(0,row.rate*speed(r,r.worker)/3600);
@@ -18,7 +28,7 @@ export function buildTeam(result,layout,growerSteps){
  const groups=new Map();for(const p of people){const personalities=[...p.personalities].sort(),where=[...p.where].sort(),key=JSON.stringify([p.ability,p.level,personalities,where,p.resident,p.family||null]);const g=groups.get(key)||{ability:p.ability,level:p.level,personalities,where,count:0,load:0,resident:p.resident,family:p.family||null};g.count++;g.load+=p.load;groups.set(key,g)}
  const jobs=new Map();for(const row of result.rows){const r=row.recipe;if(!r.seconds||!['Farmland','Woodland'].includes(r.facility))continue;for(const step of growerSteps){if(step.name!==r.id||step.facility!==r.facility)continue;const key=step.ability+'|'+step.step+'|'+step.facility;const old=jobs.get(key);if(!old||Number(step.min_level)>old.level)jobs.set(key,{ability:step.ability,level:Number(step.min_level)||1,step:step.step,facility:step.facility})}}
  if(result.rows.some(row=>row.recipe.seconds&&['Farmland','Woodland'].includes(row.recipe.facility)&&row.recipe.worker?.watered!==false))jobs.set('Water|Watering|Farmland',{ability:'Water',level:1,step:'Watering',facility:'Farmland / Woodland'});
- return {groups:[...groups.values()],jobs:[...jobs.values()]};
+ return {groups:[...groups.values()],jobs:[...jobs.values()],upgrades:[...upgrades.values()]};
 }
 
 

@@ -55,7 +55,7 @@ test('stability does not reduce climate, electricity or storage coverage',()=>{
  assert.ok(result.grid.poles<=base.grid.poles);assert.ok(result.storages.length>=base.storages.length);assert.ok(noOverlap(result.layout.placed));
 });
 test('climate reconciliation receives the solver’s actual generator count',async()=>{
- const recipe={id:'food',facility:'Claw Game Cooker',ingredients:{},yield:1,seconds:0,workload:120,facilityLevel:1,module:'',abilityLevel:1,verified:true,event:null,sellCurrency:'coins',sellValue:1,seedCost:0,byproductYield:0,eventPoints:0};
+ const recipe={id:'food',facility:'Claw Game Cooker',ingredients:{},yield:1,seconds:0,workload:120,facilityLevel:1,module:'',abilityLevel:3,verified:true,event:null,sellCurrency:'coins',sellValue:1,seedCost:0,byproductYield:0,eventPoints:0};
  const state={hours:1,beans:0,event:false,unverified:false,currentRv:12,autoWorkers:true,workerCounts:{Fire:{3:0}},power:{enabled:true,module:1,level:1,watts:600,efficiencyPercent:120},modules:{},facilities:{'Claw Game Cooker':{count:1,level:1}},stock:{},targets:{},notes:[],special:[],priorities:[{id:'coins',enabled:true}]};
  let observed;const result=await optimize([recipe],state,()=>{},{deferTieBreak:(rows,power)=>{observed={rows,power};return true}});
  assert.ok(observed.rows.some(r=>r.recipe.worker.electric));assert.equal(observed.power.generators,1);assert.deepEqual(observed.power,result.power);

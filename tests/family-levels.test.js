@@ -23,7 +23,7 @@ test('default level three works for all families without requiring owned roster 
 });
 
 test('level four Leisure cannot operate Dewy House, but can operate other valid families',()=>{
- const state=base();state.workerCounts={Leisure:{4:1}};const prepared=prepare(catalog,state);
+ const state=base();state.workerCounts={Leisure:{3:0,4:1}};const prepared=prepare(catalog,state);
  assert.ok(!prepared.some(r=>r.facility==='Dewy House'));
  assert.ok(prepared.some(r=>r.facility==='Nimbus Bed'&&r.worker.skill===4));
 });
@@ -32,7 +32,7 @@ test('Perfumery only has levels one and three, but electric mode does not need a
  const state=base();state.workerCounts={Perfumery:{1:1,2:1,3:1,4:1}};
  const prepared=prepare(catalog,state).filter(r=>r.facility==='Phonolfactory Table');
  assert.deepEqual([...new Set(prepared.map(r=>r.worker.skill))].sort(),[1,3]);
- state.workerCounts={Perfumery:{4:1}};state.power={enabled:true,efficiencyPercent:120};
+ state.workerCounts={Perfumery:{3:0,4:1}};state.power={enabled:true,efficiencyPercent:120};
  const electric=prepare(catalog,state).filter(r=>r.facility==='Phonolfactory Table');
  assert.ok(electric.length);assert.ok(electric.every(r=>r.worker.electric));
  assert.equal(possibleWorkerLevel({id:'star',facility:'Starfall Hammock'},'Leisure',2),false);
