@@ -1,24 +1,24 @@
 import {presetFacilities, facilityGroups} from './facilities.js';
 import {ELECTRIC_FACILITIES, GENERATOR_WATTS, MODULE_RV, poleLimit, powerSummary} from './power.js';
-import {translatePage, translate, gameTerm} from './i18n.js?v=0.2.25';
-import {stableLayoutPlan, STORAGE_LIMITS, coverageSegments, PLOT_GRID, PLOT_WIDTH, PLOT_HEIGHT} from './layout.js?v=0.2.25';
+import {translatePage, translate, gameTerm} from './i18n.js?v=0.2.26';
+import {stableLayoutPlan, STORAGE_LIMITS, coverageSegments, PLOT_GRID, PLOT_WIDTH, PLOT_HEIGHT} from './layout.js?v=0.2.26';
 import {STOCK_ITEMS, STOCK_LABELS, allowedStock} from './inventory.js';
 import {facilityImage} from './images.js';
-import {displayName,hasTranslation} from './names.js?v=0.2.25';
-import {speed,RV_ANIIMO_LIMITS} from './solver.js?v=0.2.25';
-import {upgradeBalance,upgradeForecast} from './upgrade-balance.js?v=0.2.25';
+import {displayName,hasTranslation} from './names.js?v=0.2.26';
+import {speed,RV_ANIIMO_LIMITS} from './solver.js?v=0.2.26';
+import {upgradeBalance,upgradeForecast} from './upgrade-balance.js?v=0.2.26';
 import {productionRates} from './production-rates.js';
-import {compareWorkModes} from './power-comparison.js?v=0.2.25';
-import {buildTeam} from './staffing.js?v=0.2.25';
+import {compareWorkModes} from './power-comparison.js?v=0.2.26';
+import {buildTeam} from './staffing.js?v=0.2.26';
 import {FAMILIES,recipeFamily} from './families.js';
 import {includeOptionalPriorities} from './priorities.js';
 import {renderTeamView} from './team-view.js';
 import {visibleUnlockRecipes,recipeMatches,setRecipeIgnored} from './recipe-options.js';
-import {encodeSharePlan,decodeSharePlan,sharePlanFromHash,validateSharePlan} from './share-plan.js?v=0.2.25';
-import {createResultSnapshot,getResultSnapshot,snapshotStatus} from './share-snapshot.js?v=0.2.25';
-const PLANNER_VERSION='0.2.25';
-import {rvCosts,futureUpgradeTargets,nextUpgradeTargets} from './rv-costs.js?v=0.2.25';
-const [baseCatalog,facilityDefinitions,climateDefinitions,growerSteps]=await Promise.all(['./data/catalog.json','./data/facilities.json','./data/climate-facilities.json','./data/grower-steps.json'].map(async path=>(await fetch(`${path}?v=0.2.25`)).json()));
+import {encodeSharePlan,decodeSharePlan,sharePlanFromHash,validateSharePlan} from './share-plan.js?v=0.2.26';
+import {createResultSnapshot,getResultSnapshot,snapshotStatus} from './share-snapshot.js?v=0.2.26';
+const PLANNER_VERSION='0.2.26';
+import {rvCosts,futureUpgradeTargets,nextUpgradeTargets} from './rv-costs.js?v=0.2.26';
+const [baseCatalog,facilityDefinitions,climateDefinitions,growerSteps]=await Promise.all(['./data/catalog.json','./data/facilities.json','./data/climate-facilities.json','./data/grower-steps.json'].map(async path=>(await fetch(`${path}?v=0.2.26`)).json()));
 const special=['orange_flower_rice_drink','rose_shortbread','potato_kvass','ginseng_porridge','strawberry_candy','flowers_in_a_bottle','lotion','magic_pumpkin_cake','golden_lantern_pumpkin_soup','honey_glazed_pumpkin_cup','magic_pumpkin_lantern','memory_lantern','glowfruit_lantern_set','gleam_fruit_nectar','magic_pumpkin','memory_lanternfruit','candied_lanternfruit','sea_salt_roasted_pumpkin','moondew_radish','waxing_moon_pepper','roasted_waxing_moon_pepper','moondew_radish_slices','umbral_hot_pot','umbral_sweet_and_spicy_sauce','umbral_pickle','harvest_platter'];
 const names={rv:'RV-Level-up',coins:'Home Coins',event:'Whimsy Points',wood:'Wood Blocks',sand:'Mineral Sand',daily:'Eventaufträge',daily_priority:'Bevorzugte Eventaufträge',workers:'Personalbedarf',reserve:'RV-Vorrat'};
 
@@ -157,7 +157,7 @@ async function copyShare(id,success){const el=$(id);try{await navigator.clipboar
 $('#copy-link').onclick=()=>copyShare('#share-link','Link kopiert.');$('#copy-code').onclick=()=>copyShare('#share-code','Code kopiert.');
 $('#load-share').onclick=async()=>{try{const v=await decodeSharePlan($('#share-input').value);applyImportedPlan(v);$('#share-dialog').close()}catch{$('#share-status').textContent=tr('Der Link oder Code ist ungültig.')}};
 $('#import').onchange=async e=>{try{const v=JSON.parse(await e.target.files[0].text());applyImportedPlan(v);$('#share-dialog').close();e.target.value=''}catch{alert(tr('Datei konnte nicht gelesen werden.'));e.target.value=''}};
-$('#solve').onclick=()=>{layoutPreference=structuredClone(layoutData?.layout?.placed||[]);const {resultSnapshot:oldSnapshot,...planState}=state;const solvedState={...structuredClone(planState),calculatedAt:Date.now()};const out=$('#output'),button=$('#solve');button.disabled=true;out.className='card';out.innerHTML=`<h3>${tr('Berechnung läuft …')}</h3><p>${tr('Große Pläne können etwas dauern.')}</p><button type="button" class="quiet" id="cancel-solve">${tr('Berechnung abbrechen')}</button>`;const worker=new Worker('./worker.js?v=0.2.25',{type:'module'});$('#cancel-solve').onclick=()=>{worker.terminate();button.disabled=false;if(lastResult)renderResult(lastResult);else{out.className='empty';out.innerHTML=`<span>✧</span><h3>${tr('Berechnung abgebrochen')}</h3><p>${tr('Du kannst die Berechnung erneut starten.')}</p>`}};worker.onmessage=e=>{if(e.data.progress){out.querySelector('p').textContent=`${tr('Berechnung läuft …')} ${tr(names[e.data.progress]||e.data.progress)} · ${tr('Klimarunde')} ${e.data.round||1}`;return}button.disabled=false;worker.terminate();if(e.data.error){out.innerHTML=`<h3>${tr('Berechnung fehlgeschlagen')}</h3><p>${esc(localizedError(e.data.error))}</p>`;return}lastResult=e.data.result;resultState={...solvedState,hours:e.data.result.planningHours||solvedState.hours};layoutData=null;renderResult(lastResult);try{state.resultSnapshot=createResultSnapshot(lastResult,resultState,layoutData,PLANNER_VERSION);save();renderResult(lastResult)}catch(error){console.warn('Could not save result snapshot',error)}};worker.onerror=()=>{button.disabled=false;worker.terminate();out.innerHTML=`<h3>${tr('Berechnung fehlgeschlagen')}</h3><p>${tr('Der Optimierer konnte nicht gestartet werden. Bitte Seite über HTTP öffnen.')}</p>`};worker.postMessage({catalog,state:{...planState,previousLayout:layoutPreference,growerSteps,climateDefinitions,stock:allowedStock(state.stock),reserveTargets:state.currentRv?futureUpgradeTargets(state.currentRv,state.reserveRv):{}}})};
+$('#solve').onclick=()=>{layoutPreference=structuredClone(layoutData?.layout?.placed||[]);const {resultSnapshot:oldSnapshot,...planState}=state;const solvedState={...structuredClone(planState),calculatedAt:Date.now()};const out=$('#output'),button=$('#solve');button.disabled=true;out.className='card';out.innerHTML=`<h3>${tr('Berechnung läuft …')}</h3><p>${tr('Große Pläne können etwas dauern.')}</p><button type="button" class="quiet" id="cancel-solve">${tr('Berechnung abbrechen')}</button>`;const worker=new Worker('./worker.js?v=0.2.26',{type:'module'});$('#cancel-solve').onclick=()=>{worker.terminate();button.disabled=false;if(lastResult)renderResult(lastResult);else{out.className='empty';out.innerHTML=`<span>✧</span><h3>${tr('Berechnung abgebrochen')}</h3><p>${tr('Du kannst die Berechnung erneut starten.')}</p>`}};worker.onmessage=e=>{if(e.data.progress){out.querySelector('p').textContent=`${tr('Berechnung läuft …')} ${tr(names[e.data.progress]||e.data.progress)} · ${tr('Klimarunde')} ${e.data.round||1}`;return}button.disabled=false;worker.terminate();if(e.data.error){out.innerHTML=`<h3>${tr('Berechnung fehlgeschlagen')}</h3><p>${esc(localizedError(e.data.error))}</p>`;return}lastResult=e.data.result;resultState={...solvedState,hours:e.data.result.planningHours||solvedState.hours};layoutData=null;renderResult(lastResult);try{state.resultSnapshot=createResultSnapshot(lastResult,resultState,layoutData,PLANNER_VERSION);save();renderResult(lastResult)}catch(error){console.warn('Could not save result snapshot',error)}};worker.onerror=()=>{button.disabled=false;worker.terminate();out.innerHTML=`<h3>${tr('Berechnung fehlgeschlagen')}</h3><p>${tr('Der Optimierer konnte nicht gestartet werden. Bitte Seite über HTTP öffnen.')}</p>`};worker.postMessage({catalog,state:{...planState,previousLayout:layoutPreference,growerSteps,climateDefinitions,stock:allowedStock(state.stock),reserveTargets:state.currentRv?futureUpgradeTargets(state.currentRv,state.reserveRv):{}}})};
 function renderResult(r){
   const currentState=state;const savedStatus=currentState.resultSnapshot?snapshotStatus(currentState.resultSnapshot,currentState,PLANNER_VERSION):null;if(resultState)state={...structuredClone(resultState),language:currentState.language,theme:currentState.theme,layoutZoom:currentState.layoutZoom};
   const out=$('#output'); out.className='';

@@ -64,11 +64,26 @@ export function prepare(catalog, state) {
     if (state.special.includes(r.id) && !state.notes.includes(r.id)) return false;
     return speed(r, f) > 0;
   }).map(r => ({...r, output:base(r.id,ids)}));
-  // Prefer an available quick variant only for the same building group and worker mode.
-  // The normal recipe remains available when the quick variant is locked or disabled.
-  const quickModes = new Set(available.filter(r=>r.id.startsWith('quick_') && r.output!==r.id)
-    .map(r=>JSON.stringify([r.facility,r.group,r.output,r.worker.skill,!!r.worker.electric])));
-  return available.filter(r=>r.id.startsWith('quick_') || !quickModes.has(JSON.stringify([r.facility,r.group,r.output,r.worker.skill,!!r.worker.electric])));
+  // A quick recipe is not necessarily faster for every worker level. Remove a
+  // normal recipe only when its quick counterpart is no worse for throughput,
+  // byproducts, event points, seed costs and ingredients in the same mode.
+  const key=r=>JSON.stringify([r.facility,r.group,r.output,r.worker.skill,!!r.worker.electric]);
+  const quickModes=new Map();
+  for(const r of available)if(r.id.startsWith('quick_')&&r.output!==r.id){const k=key(r);quickModes.set(k,[...(quickModes.get(k)||[]),r]);}
+  const dominates=(fast,normal)=>{
+    if(fast.environment!==normal.environment||fast.event!==normal.event||recipeFamily(fast)!==recipeFamily(normal)||
+       fast.sellCurrency!==normal.sellCurrency||fast.sellValue!==normal.sellValue||!(fast.yield>0)||!(normal.yield>0))return false;
+    const fastTime=speed(fast,fast.worker),normalTime=speed(normal,normal.worker),eps=1e-10;
+    if(fast.yield/fastTime+eps<normal.yield/normalTime)return false;
+    if((fast.byproductYield||0)/fastTime+eps<(normal.byproductYield||0)/normalTime)return false;
+    const points=r=>(Number(r.eventPoints)||0)*r.yield+(r.event&&r.seconds&&r.seedCost?2:0);
+    if(points(fast)/fastTime+eps<points(normal)/normalTime)return false;
+    if((fast.seedCost||0)/fast.yield>(normal.seedCost||0)/normal.yield+eps)return false;
+    const ingredients=new Set([...Object.keys(fast.ingredients||{}),...Object.keys(normal.ingredients||{})]);
+    for(const item of ingredients)if((fast.ingredients?.[item]||0)/fast.yield>(normal.ingredients?.[item]||0)/normal.yield+eps)return false;
+    return true;
+  };
+  return available.filter(r=>r.id.startsWith('quick_')||!(quickModes.get(key(r))||[]).some(q=>dominates(q,r)));
 }
 
 export function model(catalog, state, fixed = [], objective = 'coins') {
@@ -88,6 +103,11 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
   const reserveVars=Object.entries(reserveTargets).filter(([item,need])=>item!=='coins'&&Number(need)>0).map(([item,need],i)=>({item,need:Number(need),variable:`reserve${i}`}));
   const reserveByItem=new Map(reserveVars.map(x=>[x.item,x]));
   const objectives = {coins:[],event:[],rv:[[1,'progress']],reserve:reserveVars.map(x=>[1/reserveVars.length,x.variable]),wood:[],sand:[],workers:[],daily:[],daily_priority:[]};
+  // Only as a final tie-break after the player's goals: when an eligible
+  // Aniimo is faster, avoid using electricity solely to save an idle slot.
+  // Crew, family and power constraints still decide what is feasible.
+  const fasterManual=new Set();
+  for(const r of recipes)if(r.worker.electric&&recipes.some(m=>!m.worker.electric&&m.facility===r.facility&&m.group===r.group&&m.id===r.id&&speed(m,m.worker)<speed(r,r.worker)-1e-9))fasterManual.add(r);
   daily.forEach((d,i)=>{objectives.daily.push([1,`d${i}`]);if(d.priority)objectives.daily_priority.push([1,`d${i}`]);integer.push(`d${i}`)});
   const fieldAbilities=new Map();
   recipes.forEach((r,i)=>{
@@ -105,7 +125,7 @@ export function model(catalog, state, fixed = [], objective = 'coins') {
     const f = r.worker, x=`x${i}`, n=`n${i}`, rate=3600/speed(r,f);
     if (!shared.has(r.facility)) {
       lines.push(`capacity${i}: ${expr([[1,x],[-rate,n]])} <= 0`); integer.push(n);
-      if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([-.0001,n]);}
+      if(r.worker.electric) {electrical.push([facilityWatts(r.facility,r.worker.level),n]);objectives.workers.push([fasterManual.has(r)?-1.1:-.0001,n]);}
       else if(!isField(r)) objectives.workers.push([-1,n]);
       else objectives.workers.push([-.0001,n]);
     }

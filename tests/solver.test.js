@@ -81,7 +81,7 @@ test('facility groups enforce their own levels',async()=>{
  assert.ok(Math.abs(result.goals[0].value-180)<.01);
 });
 test('automatic power mode uses only the required generators for a reachable target',async()=>{
- const s=state();s.currentRv=18;s.autoWorkers=true;s.power={enabled:true,module:4,level:4,watts:1200};
+ const s=state();s.currentRv=18;s.autoWorkers=true;s.workerCounts={Artisanship:{1:0,2:0,3:0,4:0}};s.power={enabled:true,module:4,level:4,watts:1200};
  s.facilities={'Woodworking Bench':{groups:[{count:1,level:1}]}};s.stock={wood_block:1000};s.targets={rough_lumber:10};s.priorities=[{id:'rv',enabled:true}];
  const lumber=recipe('rough_lumber','Woodworking Bench',{seconds:0,workload:34,abilityLevel:2,ingredients:{wood_block:8},sellCurrency:'none'});
  const result=await optimize([lumber],s);
